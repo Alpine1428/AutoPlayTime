@@ -1,7 +1,7 @@
-
 package com.playtimechecker;
 
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.item.TooltipContext;
 import net.minecraft.item.ItemStack;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.text.Text;
@@ -22,6 +22,7 @@ public class ReportManager {
     }
 
     public static void tick() {
+
         if (!scanning) return;
 
         MinecraftClient mc = MinecraftClient.getInstance();
@@ -32,14 +33,24 @@ public class ReportManager {
         tickDelay = 0;
 
         for (int i = 0; i < 27; i++) {
-            ItemStack stack = mc.player.currentScreenHandler.getSlot(i).getStack();
+
+            ItemStack stack =
+                    mc.player.currentScreenHandler.getSlot(i).getStack();
+
             if (!stack.isEmpty()) {
 
-                List<Text> lore = stack.getTooltip(mc.player, mc.options.advancedItemTooltips);
+                List<Text> lore = stack.getTooltip(
+                        mc.player,
+                        mc.options.advancedItemTooltips
+                                ? TooltipContext.Default.ADVANCED
+                                : TooltipContext.Default.NORMAL
+                );
+
                 String suspect = null;
                 String comment = null;
 
                 for (Text t : lore) {
+
                     String line = t.getString();
 
                     if (line.contains("Подозреваемый:"))
@@ -49,20 +60,19 @@ public class ReportManager {
                         comment = line.replace("Комментарий:", "").trim();
                 }
 
-                if (suspect != null && comment != null) {
+                if (suspect != null && comment != null)
                     reports.put(suspect, comment);
-                }
             }
         }
 
-        // Если слот 27 пуст — последняя страница
+        // Проверка последней страницы (27 слот)
         if (mc.player.currentScreenHandler.getSlot(27).getStack().isEmpty()) {
             scanning = false;
             mc.player.closeScreen();
             return;
         }
 
-        // Нажимаем звезду незера (36 слот)
+        // Листаем (звезда незера — 36 слот)
         mc.interactionManager.clickSlot(
                 mc.player.currentScreenHandler.syncId,
                 36,

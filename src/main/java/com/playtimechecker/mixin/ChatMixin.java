@@ -20,13 +20,11 @@ public class ChatMixin {
 
         String msg = message.getString();
 
-        // Скрываем playtime сообщения
-        if (PlayTimeScanner.getInstance().handleChat(msg)) {
+        if (PlayTimeScanner.get().handleChat(msg)) {
             ci.cancel();
             return;
         }
 
-        // Обработка модерации
         ModerationManager.handle(msg);
     }
 }

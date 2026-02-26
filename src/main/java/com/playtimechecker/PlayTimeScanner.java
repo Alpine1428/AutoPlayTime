@@ -3,112 +3,90 @@ package com.playtimechecker;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.text.Text;
-
 import java.util.*;
 import java.util.regex.*;
 
 public class PlayTimeScanner {
 
+    public enum State { IDLE, SCANNING, WAITING }
+
     private static final PlayTimeScanner INSTANCE = new PlayTimeScanner();
-    public static PlayTimeScanner getInstance() { return INSTANCE; }
+    public static PlayTimeScanner get() { return INSTANCE; }
 
-    private boolean scanning = false;
+    private State state = State.IDLE;
     private final List<String> players = new ArrayList<>();
-    private final List<PlayerPlayTime> results = new ArrayList<>();
+    private final Map<String, Long> playtimes = new HashMap<>();
 
-    private int currentIndex = 0;
-    private int tickCounter = 0;
-    private String waitingFor = null;
+    private int index = 0;
+    private int tick = 0;
+    private String current = null;
 
     private static final Pattern TIME =
             Pattern.compile("(\\d+)ч.*, (\\d+)м.*, (\\d+)с");
 
-    public void startScan(MinecraftClient mc) {
-        if (scanning || mc.player == null) return;
+    public void start(MinecraftClient mc) {
+        if (state != State.IDLE) return;
 
         players.clear();
-        results.clear();
-        currentIndex = 0;
-        waitingFor = null;
+        playtimes.clear();
+        index = 0;
 
         for (PlayerListEntry e : mc.getNetworkHandler().getPlayerList())
             players.add(e.getProfile().getName());
 
-        scanning = true;
-
-        mc.player.sendMessage(
-                Text.literal("§aScan started. Players: " + players.size()),
-                false
-        );
+        state = State.SCANNING;
     }
 
-    public void stopScan() {
-        scanning = false;
+    public void stop() {
+        state = State.IDLE;
         players.clear();
-        waitingFor = null;
+        current = null;
     }
 
     public void tick(MinecraftClient mc) {
-        if (!scanning || mc.player == null) return;
+        if (state != State.SCANNING) return;
+        if (mc.player == null) return;
 
-        if (++tickCounter < PlayTimeConfig.getInstance().getDelayTicks())
-            return;
+        if (++tick < PlayTimeConfig.get().delayTicks) return;
+        tick = 0;
 
-        tickCounter = 0;
-
-        if (waitingFor != null) return;
-
-        if (currentIndex >= players.size()) {
-            scanning = false;
-            mc.player.sendMessage(Text.literal("§aScan finished."), false);
+        if (index >= players.size()) {
+            state = State.IDLE;
             return;
         }
 
-        waitingFor = players.get(currentIndex++);
-        mc.player.networkHandler.sendChatCommand("playtime " + waitingFor);
+        current = players.get(index++);
+        state = State.WAITING;
+        mc.player.networkHandler.sendChatCommand("playtime " + current);
     }
 
-    // ✅ ВЕРНУЛИ handleChat
     public boolean handleChat(String msg) {
-
-        if (waitingFor == null) return false;
+        if (state != State.WAITING) return false;
 
         Matcher m = TIME.matcher(msg);
-
         if (m.find()) {
-            int h = Integer.parseInt(m.group(1));
-            int min = Integer.parseInt(m.group(2));
-            int s = Integer.parseInt(m.group(3));
+            long sec =
+                    Integer.parseInt(m.group(1)) * 3600L +
+                    Integer.parseInt(m.group(2)) * 60L +
+                    Integer.parseInt(m.group(3));
 
-            long total = h * 3600L + min * 60L + s;
-
-            results.add(new PlayerPlayTime(
-                    waitingFor,
-                    h + "h " + min + "m " + s + "s",
-                    total
-            ));
-
-            waitingFor = null;
-            return true; // скрываем сообщение
+            playtimes.put(current, sec);
+            state = State.SCANNING;
+            current = null;
+            return true;
         }
+
+        if (msg.contains("PlayTimeAPI"))
+            return true;
 
         return false;
     }
 
+    public Map<String, Long> getPlaytimes() {
+        return playtimes;
+    }
+
     public boolean isScanning() {
-        return scanning;
-    }
-
-    public int getScanProgress() {
-        return currentIndex;
-    }
-
-    public int getScanTotal() {
-        return players.size();
-    }
-
-    public List<PlayerPlayTime> getResults() {
-        return results;
+        return state != State.IDLE;
     }
 }

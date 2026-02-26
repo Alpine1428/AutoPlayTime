@@ -26,10 +26,25 @@ public class PlayTimeConfig {
         return INSTANCE;
     }
 
+    public static PlayTimeConfig getInstance() {
+        return get();
+    }
+
+    public int getDelayTicks() {
+        return delayTicks;
+    }
+
+    public void setDelayTicks(int ticks) {
+        this.delayTicks = ticks;
+        save();
+    }
+
     public static void load() {
         try {
             if (FILE.exists()) {
-                INSTANCE = GSON.fromJson(new FileReader(FILE), PlayTimeConfig.class);
+                try (FileReader reader = new FileReader(FILE)) {
+                    INSTANCE = GSON.fromJson(reader, PlayTimeConfig.class);
+                }
             } else {
                 INSTANCE = new PlayTimeConfig();
                 save();
@@ -42,7 +57,9 @@ public class PlayTimeConfig {
     public static void save() {
         try {
             FILE.getParentFile().mkdirs();
-            GSON.toJson(INSTANCE, new FileWriter(FILE));
+            try (FileWriter writer = new FileWriter(FILE)) {
+                GSON.toJson(INSTANCE, writer);
+            }
         } catch (Exception ignored) {}
     }
 }

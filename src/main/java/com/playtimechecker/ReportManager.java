@@ -43,7 +43,7 @@ public class ReportManager {
                         mc.player,
                         mc.options.advancedItemTooltips
                                 ? TooltipContext.Default.ADVANCED
-                                : TooltipContext.Default.NORMAL
+                                : TooltipContext.Default.BASIC
                 );
 
                 String suspect = null;
@@ -53,11 +53,11 @@ public class ReportManager {
 
                     String line = t.getString();
 
-                    if (line.contains("Подозреваемый:"))
-                        suspect = line.replace("Подозреваемый:", "").trim();
+                    if (line.contains("\u041f\u043e\u0434\u043e\u0437\u0440\u0435\u0432\u0430\u0435\u043c\u044b\u0439:"))
+                        suspect = line.replace("\u041f\u043e\u0434\u043e\u0437\u0440\u0435\u0432\u0430\u0435\u043c\u044b\u0439:", "").trim();
 
-                    if (line.contains("Комментарий:"))
-                        comment = line.replace("Комментарий:", "").trim();
+                    if (line.contains("\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439:"))
+                        comment = line.replace("\u041a\u043e\u043c\u043c\u0435\u043d\u0442\u0430\u0440\u0438\u0439:", "").trim();
                 }
 
                 if (suspect != null && comment != null)
@@ -65,14 +65,12 @@ public class ReportManager {
             }
         }
 
-        // Проверка последней страницы (27 слот)
         if (mc.player.currentScreenHandler.getSlot(27).getStack().isEmpty()) {
             scanning = false;
             mc.player.closeScreen();
             return;
         }
 
-        // Листаем (звезда незера — 36 слот)
         mc.interactionManager.clickSlot(
                 mc.player.currentScreenHandler.syncId,
                 36,

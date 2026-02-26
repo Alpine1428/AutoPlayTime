@@ -3,7 +3,6 @@ package com.playtimechecker;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
@@ -26,45 +25,38 @@ public class PlayTimeScreen extends Screen {
     protected void init() {
         super.init();
         sortedResults = new ArrayList<>(PlayTimeScanner.getInstance().getResults());
-        Collections.sort(sortedResults); // от маленького к большому
+        Collections.sort(sortedResults);
         scrollOffset = 0;
     }
 
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-        // Затемнение фона
         renderBackground(context);
 
         int centerX = this.width / 2;
 
-        // Заголовок
-        String title = "§6§l✦ PlayTime Checker ✦";
+        String title = "\u00a76\u00a7l\u2726 PlayTime Checker \u2726";
         context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(title), centerX, 10, 0xFFFFFF);
 
-        // Статус сканирования
         PlayTimeScanner scanner = PlayTimeScanner.getInstance();
         if (scanner.isScanning()) {
-            String status = "§eСканирование: " + scanner.getScanProgress() + " / " + scanner.getScanTotal();
+            String status = "\u00a7e\u0421\u043a\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435: " + scanner.getScanProgress() + " / " + scanner.getScanTotal();
             context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(status), centerX, 25, 0xFFFF55);
         } else {
-            String status = "§aНайдено игроков: " + sortedResults.size();
+            String status = "\u00a7a\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0438\u0433\u0440\u043e\u043a\u043e\u0432: " + sortedResults.size();
             context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(status), centerX, 25, 0x55FF55);
         }
 
-        // Подсказка
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("§7Нажмите на ник чтобы скопировать"), centerX, 37, 0xAAAAAA);
+        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("\u00a77\u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u043d\u0430 \u043d\u0438\u043a \u0447\u0442\u043e\u0431\u044b \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c"), centerX, 37, 0xAAAAAA);
 
-        // Область отрисовки записей
         int visibleAreaTop = PADDING_TOP;
         int visibleAreaBottom = this.height - PADDING_BOTTOM;
         int visibleCount = (visibleAreaBottom - visibleAreaTop) / ENTRY_HEIGHT;
 
-        // Ограничиваем scrollOffset
         int maxScroll = Math.max(0, sortedResults.size() - visibleCount);
         if (scrollOffset > maxScroll) scrollOffset = maxScroll;
         if (scrollOffset < 0) scrollOffset = 0;
 
-        // Рисуем записи
         int boxWidth = 340;
         int boxLeft = centerX - boxWidth / 2;
         int boxRight = centerX + boxWidth / 2;
@@ -76,44 +68,34 @@ public class PlayTimeScreen extends Screen {
 
             boolean hovered = mouseX >= boxLeft && mouseX <= boxRight && mouseY >= y && mouseY < y + ENTRY_HEIGHT - 2;
 
-            // Фон записи
             int bgColor = hovered ? 0x80555555 : 0x80333333;
             context.fill(boxLeft, y, boxRight, y + ENTRY_HEIGHT - 2, bgColor);
 
-            // Рамка при наведении
             if (hovered) {
-                // верх
                 context.fill(boxLeft, y, boxRight, y + 1, 0xFFFFAA00);
-                // низ
                 context.fill(boxLeft, y + ENTRY_HEIGHT - 3, boxRight, y + ENTRY_HEIGHT - 2, 0xFFFFAA00);
-                // лево
                 context.fill(boxLeft, y, boxLeft + 1, y + ENTRY_HEIGHT - 2, 0xFFFFAA00);
-                // право
                 context.fill(boxRight - 1, y, boxRight, y + ENTRY_HEIGHT - 2, 0xFFFFAA00);
             }
 
-            // Номер
-            String numberStr = "§7" + (index + 1) + ". ";
+            String numberStr = "\u00a77" + (index + 1) + ". ";
 
-            // Цвет ника в зависимости от плейтайма
             String nameColor;
             if (ppt.getTotalSeconds() < 3600) {
-                nameColor = "§c"; // красный - менее часа
+                nameColor = "\u00a7c";
             } else if (ppt.getTotalSeconds() < 10800) {
-                nameColor = "§e"; // жёлтый - менее 3 часов
+                nameColor = "\u00a7e";
             } else if (ppt.getTotalSeconds() < 36000) {
-                nameColor = "§a"; // зелёный - менее 10 часов
+                nameColor = "\u00a7a";
             } else {
-                nameColor = "§b"; // голубой - 10+ часов
+                nameColor = "\u00a7b";
             }
 
-            String entryText = numberStr + nameColor + ppt.getName() + " §8| §f" + ppt.getTotalTimeFormatted();
-
+            String entryText = numberStr + nameColor + ppt.getName() + " \u00a78| \u00a7f" + ppt.getTotalTimeFormatted();
             context.drawTextWithShadow(this.textRenderer, Text.literal(entryText), boxLeft + 5, y + 5, 0xFFFFFF);
         }
 
-        // Скроллбар
-        if (sortedResults.size() > visibleCount) {
+        if (sortedResults.size() > visibleCount && maxScroll > 0) {
             int scrollBarHeight = Math.max(20, (int) ((float) visibleCount / sortedResults.size() * (visibleAreaBottom - visibleAreaTop)));
             int scrollBarY = visibleAreaTop + (int) ((float) scrollOffset / maxScroll * (visibleAreaBottom - visibleAreaTop - scrollBarHeight));
             context.fill(boxRight + 3, scrollBarY, boxRight + 6, scrollBarY + scrollBarHeight, 0xAAFFAA00);
@@ -139,11 +121,10 @@ public class PlayTimeScreen extends Screen {
                     if (mouseY >= y && mouseY < y + ENTRY_HEIGHT - 2) {
                         int index = i + scrollOffset;
                         PlayerPlayTime ppt = sortedResults.get(index);
-                        // Копируем ник в буфер обмена
                         MinecraftClient.getInstance().keyboard.setClipboard(ppt.getName());
                         if (MinecraftClient.getInstance().player != null) {
                             MinecraftClient.getInstance().player.sendMessage(
-                                    Text.literal("§e[PlayTime] §aНик §f" + ppt.getName() + " §aскопирован!"), false
+                                    Text.literal("\u00a7e[PlayTime] \u00a7a\u041d\u0438\u043a \u00a7f" + ppt.getName() + " \u00a7a\u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d!"), false
                             );
                         }
                         return true;

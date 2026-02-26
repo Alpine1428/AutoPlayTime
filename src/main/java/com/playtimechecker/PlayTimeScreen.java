@@ -50,15 +50,16 @@ public class PlayTimeScreen extends Screen {
         sorted.sort(Comparator.comparingLong(Map.Entry::getValue));
     }
 
-    private int getColor(long sec) {
-        if (sec < 3600) return 0xFF5555;       // красный <1ч
-        if (sec < 10800) return 0xFFFF55;      // жёлтый <3ч
-        if (sec < 36000) return 0x55FF55;      // зелёный <10ч
-        return 0x55FFFF;                       // голубой 10ч+
+    private String format(long sec) {
+        long h = sec / 3600;
+        long m = (sec % 3600) / 60;
+        long s = sec % 60;
+        return h + "ч " + m + "м " + s + "с";
     }
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
+
         renderBackground(ctx);
         refresh();
 
@@ -84,9 +85,8 @@ public class PlayTimeScreen extends Screen {
             long sec = e.getValue();
 
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal(name + " - " + sec + "s"),
-                    cx - 150, y,
-                    getColor(sec));
+                    Text.literal(name + " - " + format(sec)),
+                    cx - 150, y, 0xFFFFFF);
 
             if (showReports && ReportManager.getReports().containsKey(name)) {
                 ctx.drawTextWithShadow(textRenderer,
@@ -94,45 +94,10 @@ public class PlayTimeScreen extends Screen {
                         cx - 150, y + 10, 0xFF5555);
             }
 
-            ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("§a[Проверить]"),
-                    cx + 120, y, 0x00FF00);
-
             y += 20;
         }
 
         super.render(ctx, mouseX, mouseY, delta);
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-
-        int cx = width / 2;
-        int y = 60;
-
-        for (int i = scroll; i < sorted.size() && i < scroll + 12; i++) {
-
-            Map.Entry<String, Long> e = sorted.get(i);
-            String name = e.getKey();
-
-            if (mouseX >= cx - 150 && mouseX <= cx - 20 &&
-                mouseY >= y && mouseY <= y + 15) {
-
-                MinecraftClient.getInstance().keyboard.setClipboard(name);
-                return true;
-            }
-
-            if (mouseX >= cx + 120 && mouseX <= cx + 200 &&
-                mouseY >= y && mouseY <= y + 15) {
-
-                ModerationManager.start(name);
-                return true;
-            }
-
-            y += 20;
-        }
-
-        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override

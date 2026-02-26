@@ -17,11 +17,13 @@ public class PlayTimeScanner {
 
     private int index = 0;
     private String current = null;
+    private boolean hideBlock = false;
 
     private static final Pattern TIME =
             Pattern.compile("(\\d+)ч.*, (\\d+)м.*, (\\d+)с");
 
     public void start(net.minecraft.client.MinecraftClient mc) {
+
         if (state != State.IDLE) return;
 
         players.clear();
@@ -40,6 +42,7 @@ public class PlayTimeScanner {
     }
 
     public void tick(net.minecraft.client.MinecraftClient mc) {
+
         if (state != State.SCANNING) return;
 
         if (index >= players.size()) {
@@ -53,10 +56,23 @@ public class PlayTimeScanner {
     }
 
     public boolean handleChat(String msg) {
+
+        if (msg.contains("PlayTimeAPI")) {
+            hideBlock = true;
+            return true;
+        }
+
+        if (hideBlock) {
+            if (msg.contains("---"))
+                hideBlock = false;
+            return true;
+        }
+
         if (state != State.WAITING) return false;
 
         Matcher m = TIME.matcher(msg);
         if (m.find()) {
+
             long sec =
                     Integer.parseInt(m.group(1)) * 3600L +
                     Integer.parseInt(m.group(2)) * 60L +
@@ -67,11 +83,22 @@ public class PlayTimeScanner {
             return true;
         }
 
-        return msg.contains("PlayTimeAPI");
+        return false;
     }
 
-    public Map<String, Long> getPlaytimes() { return playtimes; }
-    public boolean isScanning() { return state != State.IDLE; }
-    public int getProgress() { return index; }
-    public int getTotal() { return players.size(); }
+    public Map<String, Long> getPlaytimes() {
+        return playtimes;
+    }
+
+    public boolean isScanning() {
+        return state != State.IDLE;
+    }
+
+    public int getProgress() {
+        return index;
+    }
+
+    public int getTotal() {
+        return players.size();
+    }
 }

@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "id": "playtime-checker",
+  "version": "${version}",
+  "name": "PlayTime Checker",
+  "description": "HolyWorld PlayTime checker for moderators",
+  "authors": ["Moderator"],
+  "contact": {},
+  "license": "MIT",
+  "icon": "",
+  "environment": "client",
+  "entrypoints": {
+    "client": [
+      "com.playtimechecker.PlayTimeCheckerMod"
+    ]
+  },
+  "mixins": [
+    "playtime-checker.mixins.json"
+  ],
+  "depends": {
+    "fabricloader": ">=0.15.0",
+    "minecraft": "~1.20.1",
+    "java": ">=17",
+    "fabric-api": "*"
+  }
+}

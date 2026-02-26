@@ -1,216 +1,213 @@
-package com.playtimechecker;
+import os
 
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.network.PlayerListEntry;
-import net.minecraft.text.Text;
+def create_file(path, content):
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, 'w', encoding='utf-8', newline='\n') as f:
+        f.write(content)
+    print(f"Created: {path}")
 
-import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+def main():
+    base = "PlayTimeChecker"
 
-public class PlayTimeScanner {
+    create_file(f"{base}/src/main/java/com/playtimechecker/PlayTimeScanner.java", 'package com.playtimechecker;\n'
+'\n'
+'import net.minecraft.client.MinecraftClient;\n'
+'import net.minecraft.client.network.PlayerListEntry;\n'
+'import net.minecraft.text.Text;\n'
+'\n'
+'import java.util.*;\n'
+'import java.util.concurrent.CopyOnWriteArrayList;\n'
+'import java.util.regex.Matcher;\n'
+'import java.util.regex.Pattern;\n'
+'\n'
+'public class PlayTimeScanner {\n'
+'\n'
+'    private static final PlayTimeScanner INSTANCE = new PlayTimeScanner();\n'
+'\n'
+'    public static PlayTimeScanner getInstance() {\n'
+'        return INSTANCE;\n'
+'    }\n'
+'\n'
+'    private final List<String> queue = new ArrayList<>();\n'
+'    private final List<PlayerPlayTime> results = new CopyOnWriteArrayList<>();\n'
+'\n'
+'    private boolean scanning = false;\n'
+'    private boolean waitingForResponse = false;\n'
+'    private String currentName = null;\n'
+'    private int tickCounter = 0;\n'
+'    private boolean collectingResponse = false;\n'
+'    private final List<String> responseLines = new ArrayList<>();\n'
+'\n'
+'    private static final Pattern ACTIVITY_PATTERN = Pattern.compile("\\u0410\\u043a\\u0442\\u0438\\u0432\\u043d\\u043e\\u0441\\u0442\\u044c\\\\s+(\\\\S+)");\n'
+'    private static final Pattern TIME_PATTERN = Pattern.compile("\\u041e\\u0431\\u0449\\u0435\\u0435 \\u0432\\u0440\\u0435\\u043c\\u044f \\u0432 \\u0438\\u0433\\u0440\\u0435:\\\\s*(\\\\d+)\\u0447\\\\.?,?\\\\s*(\\\\d+)\\u043c\\\\.?,?\\\\s*(\\\\d+)\\u0441\\\\.");\n'
+'    private static final String SEPARATOR = "---";\n'
+'\n'
+'    private int scanProgress = 0;\n'
+'    private int scanTotal = 0;\n'
+'\n'
+'    public void startScan(MinecraftClient client) {\n'
+'        if (scanning) {\n'
+'            if (client.player != null) {\n'
+'                client.player.sendMessage(Text.literal("\\u00a7e[PlayTime] \\u00a7c\\u0421\\u043a\\u0430\\u043d\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435 \\u0443\\u0436\\u0435 \\u0438\\u0434\\u0451\\u0442..."), false);\n'
+'            }\n'
+'            return;\n'
+'        }\n'
+'\n'
+'        queue.clear();\n'
+'        results.clear();\n'
+'        responseLines.clear();\n'
+'        collectingResponse = false;\n'
+'        waitingForResponse = false;\n'
+'        currentName = null;\n'
+'\n'
+'        if (client.getNetworkHandler() != null) {\n'
+'            Collection<PlayerListEntry> entries = client.getNetworkHandler().getPlayerList();\n'
+'            for (PlayerListEntry entry : entries) {\n'
+'                String name = entry.getProfile().getName();\n'
+'                if (name != null && !name.isEmpty()) {\n'
+'                    queue.add(name);\n'
+'                }\n'
+'            }\n'
+'        }\n'
+'\n'
+'        if (queue.isEmpty()) {\n'
+'            if (client.player != null) {\n'
+'                client.player.sendMessage(Text.literal("\\u00a7e[PlayTime] \\u00a7c\\u041d\\u0435\\u0442 \\u0438\\u0433\\u0440\\u043e\\u043a\\u043e\\u0432 \\u043e\\u043d\\u043b\\u0430\\u0439\\u043d!"), false);\n'
+'            }\n'
+'            return;\n'
+'        }\n'
+'\n'
+'        scanTotal = queue.size();\n'
+'        scanProgress = 0;\n'
+'        scanning = true;\n'
+'        tickCounter = 0;\n'
+'\n'
+'        if (client.player != null) {\n'
+'            client.player.sendMessage(Text.literal("\\u00a7e[PlayTime] \\u00a7a\\u041d\\u0430\\u0447\\u0438\\u043d\\u0430\\u044e \\u0441\\u043a\\u0430\\u043d\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435 " + scanTotal + " \\u0438\\u0433\\u0440\\u043e\\u043a\\u043e\\u0432..."), false);\n'
+'        }\n'
+'    }\n'
+'\n'
+'    public void tick(MinecraftClient client) {\n'
+'        if (!scanning) return;\n'
+'        if (client.player == null) return;\n'
+'\n'
+'        if (waitingForResponse) {\n'
+'            tickCounter++;\n'
+'            if (tickCounter > 100) {\n'
+'                waitingForResponse = false;\n'
+'                collectingResponse = false;\n'
+'                responseLines.clear();\n'
+'                tickCounter = 0;\n'
+'            }\n'
+'            return;\n'
+'        }\n'
+'\n'
+'        tickCounter++;\n'
+'        if (tickCounter < 2) return;\n'
+'        tickCounter = 0;\n'
+'\n'
+'        if (queue.isEmpty()) {\n'
+'            scanning = false;\n'
+'            Collections.sort(results);\n'
+'            client.player.sendMessage(Text.literal("\\u00a7e[PlayTime] \\u00a7a\\u0421\\u043a\\u0430\\u043d\\u0438\\u0440\\u043e\\u0432\\u0430\\u043d\\u0438\\u0435 \\u0437\\u0430\\u0432\\u0435\\u0440\\u0448\\u0435\\u043d\\u043e! \\u041d\\u0430\\u0436\\u043c\\u0438\\u0442\\u0435 \\u00a76K \\u00a7a\\u0447\\u0442\\u043e\\u0431\\u044b \\u043e\\u0442\\u043a\\u0440\\u044b\\u0442\\u044c \\u043c\\u0435\\u043d\\u044e."), false);\n'
+'            return;\n'
+'        }\n'
+'\n'
+'        currentName = queue.remove(0);\n'
+'        scanProgress++;\n'
+'\n'
+'        String command = "playtime " + currentName;\n'
+'        if (client.getNetworkHandler() != null) {\n'
+'            client.getNetworkHandler().sendChatCommand(command);\n'
+'        }\n'
+'\n'
+'        waitingForResponse = true;\n'
+'        collectingResponse = false;\n'
+'        responseLines.clear();\n'
+'    }\n'
+'\n'
+'    public boolean onChatMessage(String message) {\n'
+'        if (!scanning && !waitingForResponse) return false;\n'
+'\n'
+'        if (message.contains("PlayTimeAPI")) {\n'
+'            collectingResponse = true;\n'
+'            responseLines.clear();\n'
+'            responseLines.add(message);\n'
+'            return true;\n'
+'        }\n'
+'\n'
+'        if (collectingResponse) {\n'
+'            responseLines.add(message);\n'
+'\n'
+'            if (responseLines.size() > 1 && message.contains("---")) {\n'
+'                parseResponse();\n'
+'                collectingResponse = false;\n'
+'                waitingForResponse = false;\n'
+'                responseLines.clear();\n'
+'                tickCounter = 0;\n'
+'                return true;\n'
+'            }\n'
+'\n'
+'            return true;\n'
+'        }\n'
+'\n'
+'        if (waitingForResponse && (message.contains("\\u043d\\u0435 \\u043d\\u0430\\u0439\\u0434\\u0435\\u043d") || message.contains("not found"))) {\n'
+'            waitingForResponse = false;\n'
+'            collectingResponse = false;\n'
+'            responseLines.clear();\n'
+'            tickCounter = 0;\n'
+'            return true;\n'
+'        }\n'
+'\n'
+'        return false;\n'
+'    }\n'
+'\n'
+'    private void parseResponse() {\n'
+'        String playerName = currentName;\n'
+'        String totalTimeStr = null;\n'
+'        long totalSec = 0;\n'
+'        boolean firstTotalTime = true;\n'
+'\n'
+'        for (String line : responseLines) {\n'
+'            Matcher actMatcher = ACTIVITY_PATTERN.matcher(line);\n'
+'            if (actMatcher.find()) {\n'
+'                playerName = actMatcher.group(1);\n'
+'            }\n'
+'\n'
+'            Matcher timeMatcher = TIME_PATTERN.matcher(line);\n'
+'            if (timeMatcher.find() && firstTotalTime) {\n'
+'                int hours = Integer.parseInt(timeMatcher.group(1));\n'
+'                int minutes = Integer.parseInt(timeMatcher.group(2));\n'
+'                int seconds = Integer.parseInt(timeMatcher.group(3));\n'
+'                totalSec = hours * 3600L + minutes * 60L + seconds;\n'
+'                totalTimeStr = hours + "\\u0447. " + minutes + "\\u043c. " + seconds + "\\u0441.";\n'
+'                firstTotalTime = false;\n'
+'            }\n'
+'        }\n'
+'\n'
+'        if (playerName != null && totalTimeStr != null) {\n'
+'            results.add(new PlayerPlayTime(playerName, totalTimeStr, totalSec));\n'
+'        }\n'
+'    }\n'
+'\n'
+'    public List<PlayerPlayTime> getResults() {\n'
+'        return results;\n'
+'    }\n'
+'\n'
+'    public boolean isScanning() {\n'
+'        return scanning;\n'
+'    }\n'
+'\n'
+'    public int getScanProgress() {\n'
+'        return scanProgress;\n'
+'    }\n'
+'\n'
+'    public int getScanTotal() {\n'
+'        return scanTotal;\n'
+'    }\n'
+'}\n')
 
-    private static final PlayTimeScanner INSTANCE = new PlayTimeScanner();
+    print("Done!")
 
-    public static PlayTimeScanner getInstance() {
-        return INSTANCE;
-    }
-
-    private final List<String> queue = new ArrayList<>();
-    private final List<PlayerPlayTime> results = new CopyOnWriteArrayList<>();
-
-    private boolean scanning = false;
-    private boolean waitingForResponse = false;
-    private String currentName = null;
-    private int tickCounter = 0;
-    private boolean collectingResponse = false;
-    private final List<String> responseLines = new ArrayList<>();
-
-    // Pattern для "Активность <nick>"
-    private static final Pattern ACTIVITY_PATTERN = Pattern.compile("Активность\s+(\S+)");
-    // Pattern для "Общее время в игре: Xч., Yм., Zс."
-    private static final Pattern TIME_PATTERN = Pattern.compile("Общее время в игре:\s*(\d+)ч\.?,?\s*(\d+)м\.?,?\s*(\d+)с\.");
-    // Разделитель
-    private static final String SEPARATOR = "---";
-
-    private int scanProgress = 0;
-    private int scanTotal = 0;
-
-    public void startScan(MinecraftClient client) {
-        if (scanning) {
-            if (client.player != null) {
-                client.player.sendMessage(Text.literal("§e[PlayTime] §cСканирование уже идёт..."), false);
-            }
-            return;
-        }
-
-        queue.clear();
-        results.clear();
-        responseLines.clear();
-        collectingResponse = false;
-        waitingForResponse = false;
-        currentName = null;
-
-        // Собираем всех игроков из TAB-листа
-        if (client.getNetworkHandler() != null) {
-            Collection<PlayerListEntry> entries = client.getNetworkHandler().getPlayerList();
-            for (PlayerListEntry entry : entries) {
-                String name = entry.getProfile().getName();
-                if (name != null && !name.isEmpty()) {
-                    queue.add(name);
-                }
-            }
-        }
-
-        if (queue.isEmpty()) {
-            if (client.player != null) {
-                client.player.sendMessage(Text.literal("§e[PlayTime] §cНет игроков онлайн!"), false);
-            }
-            return;
-        }
-
-        scanTotal = queue.size();
-        scanProgress = 0;
-        scanning = true;
-        tickCounter = 0;
-
-        if (client.player != null) {
-            client.player.sendMessage(Text.literal("§e[PlayTime] §aНачинаю сканирование " + scanTotal + " игроков..."), false);
-        }
-    }
-
-    public void tick(MinecraftClient client) {
-        if (!scanning) return;
-        if (client.player == null) return;
-
-        // Если ждём ответ, просто ждём (таймаут 100 тиков = 5 секунд)
-        if (waitingForResponse) {
-            tickCounter++;
-            if (tickCounter > 100) {
-                // Таймаут — пропускаем игрока
-                waitingForResponse = false;
-                collectingResponse = false;
-                responseLines.clear();
-                tickCounter = 0;
-            }
-            return;
-        }
-
-        // Минимальная задержка между командами (2 тика)
-        tickCounter++;
-        if (tickCounter < 2) return;
-        tickCounter = 0;
-
-        if (queue.isEmpty()) {
-            // Сканирование завершено
-            scanning = false;
-            Collections.sort(results);
-            client.player.sendMessage(Text.literal("§e[PlayTime] §aСканирование завершено! Нажмите §6K §aчтобы открыть меню."), false);
-            return;
-        }
-
-        // Отправляем команду для следующего игрока
-        currentName = queue.remove(0);
-        scanProgress++;
-
-        String command = "playtime " + currentName;
-        if (client.getNetworkHandler() != null) {
-            client.getNetworkHandler().sendChatCommand(command);
-        }
-
-        waitingForResponse = true;
-        collectingResponse = false;
-        responseLines.clear();
-    }
-
-    /**
-     * Вызывается из mixin'а при получении сообщения.
-     * Возвращает true, если сообщение нужно скрыть.
-     */
-    public boolean onChatMessage(String message) {
-        if (!scanning && !waitingForResponse) return false;
-
-        // Начало блока PlayTimeAPI
-        if (message.contains("PlayTimeAPI")) {
-            collectingResponse = true;
-            responseLines.clear();
-            responseLines.add(message);
-            return true; // скрываем
-        }
-
-        if (collectingResponse) {
-            responseLines.add(message);
-
-            // Конец блока — строка с "---" после начала
-            if (responseLines.size() > 1 && message.contains("---")) {
-                // Парсим собранный ответ
-                parseResponse();
-                collectingResponse = false;
-                waitingForResponse = false;
-                responseLines.clear();
-                tickCounter = 0;
-                return true;
-            }
-
-            return true; // скрываем все строки внутри блока
-        }
-
-        // Если пришло "Игрок не найден" или подобное
-        if (waitingForResponse && (message.contains("не найден") || message.contains("not found") || message.contains("Неизвестная команда"))) {
-            waitingForResponse = false;
-            collectingResponse = false;
-            responseLines.clear();
-            tickCounter = 0;
-            return true;
-        }
-
-        return false;
-    }
-
-    private void parseResponse() {
-        String playerName = currentName;
-        String totalTimeStr = null;
-        long totalSec = 0;
-        boolean firstTotalTime = true;
-
-        for (String line : responseLines) {
-            // Ищем имя игрока
-            Matcher actMatcher = ACTIVITY_PATTERN.matcher(line);
-            if (actMatcher.find()) {
-                playerName = actMatcher.group(1);
-            }
-
-            // Ищем "Общее время в игре:" — берём первое вхождение (глобальное)
-            Matcher timeMatcher = TIME_PATTERN.matcher(line);
-            if (timeMatcher.find() && firstTotalTime) {
-                int hours = Integer.parseInt(timeMatcher.group(1));
-                int minutes = Integer.parseInt(timeMatcher.group(2));
-                int seconds = Integer.parseInt(timeMatcher.group(3));
-                totalSec = hours * 3600L + minutes * 60L + seconds;
-                totalTimeStr = hours + "ч. " + minutes + "м. " + seconds + "с.";
-                firstTotalTime = false;
-            }
-        }
-
-        if (playerName != null && totalTimeStr != null) {
-            results.add(new PlayerPlayTime(playerName, totalTimeStr, totalSec));
-        }
-    }
-
-    public List<PlayerPlayTime> getResults() {
-        return results;
-    }
-
-    public boolean isScanning() {
-        return scanning;
-    }
-
-    public int getScanProgress() {
-        return scanProgress;
-    }
-
-    public int getScanTotal() {
-        return scanTotal;
-    }
-}
+if __name__ == "__main__":
+    main()

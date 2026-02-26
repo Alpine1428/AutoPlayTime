@@ -17,6 +17,7 @@ public class ModerationManager {
             Pattern.compile("(\\d+)ч.*, (\\d+)м.*, (\\d+)с");
 
     public static void start(String nick) {
+
         targetNick = nick;
 
         MinecraftClient mc = MinecraftClient.getInstance();
@@ -31,7 +32,6 @@ public class ModerationManager {
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;
 
-        // ================= FIND =================
         if (msg.contains("находится на сервере")) {
 
             Matcher m = FIND_PATTERN.matcher(msg);
@@ -42,48 +42,32 @@ public class ModerationManager {
 
             if (!moderator.equalsIgnoreCase(targetNick)) {
 
-                if (server.startsWith("lanarchy")) {
-                    mc.player.networkHandler.sendChatCommand(
-                            "ln " + server.replace("lanarchy", "")
-                    );
-                }
+                if (server.startsWith("lanarchy"))
+                    mc.player.networkHandler.sendChatCommand("ln " + server.replace("lanarchy", ""));
 
-                if (server.startsWith("l2anarchy")) {
-                    mc.player.networkHandler.sendChatCommand(
-                            "ln120 " + server.replace("l2anarchy", "")
-                    );
-                }
+                if (server.startsWith("l2anarchy"))
+                    mc.player.networkHandler.sendChatCommand("ln120 " + server.replace("l2anarchy", ""));
 
-                if (server.startsWith("anarchy")) {
-                    mc.player.networkHandler.sendChatCommand(
-                            "cn " + server.replace("anarchy", "")
-                    );
-                }
+                if (server.startsWith("anarchy"))
+                    mc.player.networkHandler.sendChatCommand("cn " + server.replace("anarchy", ""));
             }
 
             mc.player.networkHandler.sendChatCommand("playtime " + targetNick);
         }
 
-        // ================= ACTIVITY =================
         if (msg.contains("Последняя активность")) {
 
             Matcher m = ACTIVITY_PATTERN.matcher(msg);
             if (!m.find()) return;
 
-            int hours = Integer.parseInt(m.group(1));
-            int minutes = Integer.parseInt(m.group(2));
-            int seconds = Integer.parseInt(m.group(3));
+            int sec = Integer.parseInt(m.group(1)) * 3600
+                    + Integer.parseInt(m.group(2)) * 60
+                    + Integer.parseInt(m.group(3));
 
-            int totalSeconds = hours * 3600 + minutes * 60 + seconds;
-
-            if (totalSeconds <= PlayTimeConfig.get().activitySeconds) {
+            if (sec <= PlayTimeConfig.get().activitySeconds)
                 mc.player.networkHandler.sendChatCommand("hm spyfrz");
-            } else {
-                mc.player.sendMessage(
-                        Text.literal("Игрок не активен проследите сами"),
-                        false
-                );
-            }
+            else
+                mc.player.sendMessage(Text.literal("Игрок не активен проследите сами"), false);
         }
     }
 }

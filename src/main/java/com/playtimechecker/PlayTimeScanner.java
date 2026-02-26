@@ -23,11 +23,9 @@ public class PlayTimeScanner {
     private int tickCounter = 0;
     private String pendingPlayer = null;
 
-    // Формат: Xд Xч Xм Xс
     private static final Pattern PLAYTIME_PATTERN =
             Pattern.compile("(\\d+)\\s*\u0434.*?(\\d+)\\s*\u0447.*?(\\d+)\\s*\u043c.*?(\\d+)\\s*\u0441");
 
-    // Формат: Xч Xм Xс
     private static final Pattern PLAYTIME_SIMPLE_PATTERN =
             Pattern.compile("(\\d+)\\s*\u0447.*?(\\d+)\\s*\u043c.*?(\\d+)\\s*\u0441");
 
@@ -53,13 +51,13 @@ public class PlayTimeScanner {
         }
 
         if (playerNames.isEmpty()) {
-            client.player.sendMessage(Text.literal("\u00a7e[PlayTime] \u00a7c\u041d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u043e \u0438\u0433\u0440\u043e\u043a\u043e\u0432!"), false);
+            client.player.sendMessage(Text.literal("\u00a7e[PlayTime] \u00a7c\u041d\u0435\u0442 \u0438\u0433\u0440\u043e\u043a\u043e\u0432!"), false);
             return;
         }
 
         scanning = true;
         client.player.sendMessage(
-                Text.literal("\u00a7e[PlayTime] \u00a7a\u0421\u043a\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u043d\u0430\u0447\u0430\u0442\u043e: \u00a7f" + playerNames.size() + " \u00a7a\u0438\u0433\u0440\u043e\u043a\u043e\u0432"),
+                Text.literal("\u00a7e[PlayTime] \u00a7a\u0421\u043a\u0430\u043d: \u00a7f" + playerNames.size() + " \u00a7a\u0438\u0433\u0440\u043e\u043a\u043e\u0432"),
                 false
         );
     }
@@ -69,7 +67,6 @@ public class PlayTimeScanner {
         if (client.player == null) return;
 
         tickCounter++;
-
         int delay = PlayTimeConfig.get().delayTicks;
         if (tickCounter < delay) return;
         tickCounter = 0;
@@ -77,7 +74,7 @@ public class PlayTimeScanner {
         if (currentIndex >= playerNames.size()) {
             scanning = false;
             client.player.sendMessage(
-                    Text.literal("\u00a7e[PlayTime] \u00a7a\u0421\u043a\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e! \u00a7f" + results.size() + " \u00a7a\u0438\u0433\u0440\u043e\u043a\u043e\u0432. K \u0434\u043b\u044f \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440\u0430."),
+                    Text.literal("\u00a7e[PlayTime] \u00a7a\u0413\u043e\u0442\u043e\u0432\u043e! \u00a7f" + results.size() + " \u00a7a\u0438\u0433\u0440\u043e\u043a\u043e\u0432. K - \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440."),
                     false
             );
             return;
@@ -99,10 +96,8 @@ public class PlayTimeScanner {
                 int hours = Integer.parseInt(m.group(2));
                 int minutes = Integer.parseInt(m.group(3));
                 int seconds = Integer.parseInt(m.group(4));
-
                 long totalSeconds = days * 86400L + hours * 3600L + minutes * 60L + seconds;
-                String formatted = days + "\u0434 " + hours + "\u0447 " + minutes + "\u043c " + seconds + "\u0441";
-
+                String formatted = days + "d " + hours + "h " + minutes + "m " + seconds + "s";
                 results.add(new PlayerPlayTime(pendingPlayer, formatted, totalSeconds));
                 pendingPlayer = null;
                 return true;
@@ -113,17 +108,15 @@ public class PlayTimeScanner {
                 int hours = Integer.parseInt(m2.group(1));
                 int minutes = Integer.parseInt(m2.group(2));
                 int seconds = Integer.parseInt(m2.group(3));
-
                 long totalSeconds = hours * 3600L + minutes * 60L + seconds;
-                String formatted = hours + "\u0447 " + minutes + "\u043c " + seconds + "\u0441";
-
+                String formatted = hours + "h " + minutes + "m " + seconds + "s";
                 results.add(new PlayerPlayTime(pendingPlayer, formatted, totalSeconds));
                 pendingPlayer = null;
                 return true;
             }
         }
 
-        if (pendingPlayer != null && (message.contains("\u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d") || message.contains("never played"))) {
+        if (pendingPlayer != null && (message.contains("not found") || message.contains("never played") || message.contains("\u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d"))) {
             pendingPlayer = null;
             return true;
         }
@@ -131,19 +124,8 @@ public class PlayTimeScanner {
         return false;
     }
 
-    public boolean isScanning() {
-        return scanning;
-    }
-
-    public int getScanProgress() {
-        return currentIndex;
-    }
-
-    public int getScanTotal() {
-        return playerNames.size();
-    }
-
-    public List<PlayerPlayTime> getResults() {
-        return results;
-    }
+    public boolean isScanning() { return scanning; }
+    public int getScanProgress() { return currentIndex; }
+    public int getScanTotal() { return playerNames.size(); }
+    public List<PlayerPlayTime> getResults() { return results; }
 }

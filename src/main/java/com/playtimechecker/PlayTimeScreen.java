@@ -32,27 +32,26 @@ public class PlayTimeScreen extends Screen {
     @Override
     public void render(DrawContext context, int mouseX, int mouseY, float delta) {
         renderBackground(context);
-
         int centerX = this.width / 2;
 
-        String title = "\u00a76\u00a7l\u2726 PlayTime Checker \u2726";
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(title), centerX, 10, 0xFFFFFF);
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                Text.literal("\u00a76\u00a7lPlayTime Checker"), centerX, 10, 0xFFFFFF);
 
         PlayTimeScanner scanner = PlayTimeScanner.getInstance();
         if (scanner.isScanning()) {
-            String status = "\u00a7e\u0421\u043a\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435: " + scanner.getScanProgress() + " / " + scanner.getScanTotal();
+            String status = "\u00a7eScan: " + scanner.getScanProgress() + " / " + scanner.getScanTotal();
             context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(status), centerX, 25, 0xFFFF55);
         } else {
-            String status = "\u00a7a\u041d\u0430\u0439\u0434\u0435\u043d\u043e \u0438\u0433\u0440\u043e\u043a\u043e\u0432: " + sortedResults.size();
+            String status = "\u00a7aPlayers: " + sortedResults.size();
             context.drawCenteredTextWithShadow(this.textRenderer, Text.literal(status), centerX, 25, 0x55FF55);
         }
 
-        context.drawCenteredTextWithShadow(this.textRenderer, Text.literal("\u00a77\u041d\u0430\u0436\u043c\u0438\u0442\u0435 \u043d\u0430 \u043d\u0438\u043a \u0447\u0442\u043e\u0431\u044b \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c"), centerX, 37, 0xAAAAAA);
+        context.drawCenteredTextWithShadow(this.textRenderer,
+                Text.literal("\u00a77Click nick to copy"), centerX, 37, 0xAAAAAA);
 
         int visibleAreaTop = PADDING_TOP;
         int visibleAreaBottom = this.height - PADDING_BOTTOM;
         int visibleCount = (visibleAreaBottom - visibleAreaTop) / ENTRY_HEIGHT;
-
         int maxScroll = Math.max(0, sortedResults.size() - visibleCount);
         if (scrollOffset > maxScroll) scrollOffset = maxScroll;
         if (scrollOffset < 0) scrollOffset = 0;
@@ -65,9 +64,7 @@ public class PlayTimeScreen extends Screen {
             int index = i + scrollOffset;
             PlayerPlayTime ppt = sortedResults.get(index);
             int y = visibleAreaTop + i * ENTRY_HEIGHT;
-
             boolean hovered = mouseX >= boxLeft && mouseX <= boxRight && mouseY >= y && mouseY < y + ENTRY_HEIGHT - 2;
-
             int bgColor = hovered ? 0x80555555 : 0x80333333;
             context.fill(boxLeft, y, boxRight, y + ENTRY_HEIGHT - 2, bgColor);
 
@@ -78,27 +75,20 @@ public class PlayTimeScreen extends Screen {
                 context.fill(boxRight - 1, y, boxRight, y + ENTRY_HEIGHT - 2, 0xFFFFAA00);
             }
 
-            String numberStr = "\u00a77" + (index + 1) + ". ";
-
             String nameColor;
-            if (ppt.getTotalSeconds() < 3600) {
-                nameColor = "\u00a7c";
-            } else if (ppt.getTotalSeconds() < 10800) {
-                nameColor = "\u00a7e";
-            } else if (ppt.getTotalSeconds() < 36000) {
-                nameColor = "\u00a7a";
-            } else {
-                nameColor = "\u00a7b";
-            }
+            if (ppt.getTotalSeconds() < 3600) nameColor = "\u00a7c";
+            else if (ppt.getTotalSeconds() < 10800) nameColor = "\u00a7e";
+            else if (ppt.getTotalSeconds() < 36000) nameColor = "\u00a7a";
+            else nameColor = "\u00a7b";
 
-            String entryText = numberStr + nameColor + ppt.getName() + " \u00a78| \u00a7f" + ppt.getTotalTimeFormatted();
+            String entryText = "\u00a77" + (index + 1) + ". " + nameColor + ppt.getName() + " \u00a78| \u00a7f" + ppt.getTotalTimeFormatted();
             context.drawTextWithShadow(this.textRenderer, Text.literal(entryText), boxLeft + 5, y + 5, 0xFFFFFF);
         }
 
         if (sortedResults.size() > visibleCount && maxScroll > 0) {
-            int scrollBarHeight = Math.max(20, (int) ((float) visibleCount / sortedResults.size() * (visibleAreaBottom - visibleAreaTop)));
-            int scrollBarY = visibleAreaTop + (int) ((float) scrollOffset / maxScroll * (visibleAreaBottom - visibleAreaTop - scrollBarHeight));
-            context.fill(boxRight + 3, scrollBarY, boxRight + 6, scrollBarY + scrollBarHeight, 0xAAFFAA00);
+            int sbH = Math.max(20, (int)((float)visibleCount / sortedResults.size() * (visibleAreaBottom - visibleAreaTop)));
+            int sbY = visibleAreaTop + (int)((float)scrollOffset / maxScroll * (visibleAreaBottom - visibleAreaTop - sbH));
+            context.fill(boxRight + 3, sbY, boxRight + 6, sbY + sbH, 0xAAFFAA00);
         }
 
         super.render(context, mouseX, mouseY, delta);
@@ -114,7 +104,6 @@ public class PlayTimeScreen extends Screen {
             int visibleAreaTop = PADDING_TOP;
             int visibleAreaBottom = this.height - PADDING_BOTTOM;
             int visibleCount = (visibleAreaBottom - visibleAreaTop) / ENTRY_HEIGHT;
-
             if (mouseX >= boxLeft && mouseX <= boxRight) {
                 for (int i = 0; i < visibleCount && (i + scrollOffset) < sortedResults.size(); i++) {
                     int y = visibleAreaTop + i * ENTRY_HEIGHT;
@@ -124,8 +113,7 @@ public class PlayTimeScreen extends Screen {
                         MinecraftClient.getInstance().keyboard.setClipboard(ppt.getName());
                         if (MinecraftClient.getInstance().player != null) {
                             MinecraftClient.getInstance().player.sendMessage(
-                                    Text.literal("\u00a7e[PlayTime] \u00a7a\u041d\u0438\u043a \u00a7f" + ppt.getName() + " \u00a7a\u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d!"), false
-                            );
+                                    Text.literal("\u00a7e[PT] \u00a7a" + ppt.getName() + " copied!"), false);
                         }
                         return true;
                     }
@@ -138,9 +126,7 @@ public class PlayTimeScreen extends Screen {
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
         scrollOffset -= (int) amount * 3;
-        int visibleAreaTop = PADDING_TOP;
-        int visibleAreaBottom = this.height - PADDING_BOTTOM;
-        int visibleCount = (visibleAreaBottom - visibleAreaTop) / ENTRY_HEIGHT;
+        int visibleCount = (this.height - PADDING_BOTTOM - PADDING_TOP) / ENTRY_HEIGHT;
         int maxScroll = Math.max(0, sortedResults.size() - visibleCount);
         if (scrollOffset > maxScroll) scrollOffset = maxScroll;
         if (scrollOffset < 0) scrollOffset = 0;
@@ -148,7 +134,5 @@ public class PlayTimeScreen extends Screen {
     }
 
     @Override
-    public boolean shouldPause() {
-        return false;
-    }
+    public boolean shouldPause() { return false; }
 }

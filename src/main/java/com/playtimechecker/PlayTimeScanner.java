@@ -1,131 +1,90 @@
+
 package com.playtimechecker;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.Text;
-
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.regex.*;
 
 public class PlayTimeScanner {
 
     private static final PlayTimeScanner INSTANCE = new PlayTimeScanner();
-
-    public static PlayTimeScanner getInstance() {
-        return INSTANCE;
-    }
+    public static PlayTimeScanner getInstance() { return INSTANCE; }
 
     private boolean scanning = false;
-    private List<String> playerNames = new ArrayList<>();
-    private List<PlayerPlayTime> results = new ArrayList<>();
-    private int currentIndex = 0;
-    private int tickCounter = 0;
-    private String pendingPlayer = null;
+    private final List<String> players = new ArrayList<>();
+    private final List<PlayerPlayTime> results = new ArrayList<>();
 
-    private static final Pattern PLAYTIME_PATTERN =
-            Pattern.compile("(\\d+)\\s*\u0434.*?(\\d+)\\s*\u0447.*?(\\d+)\\s*\u043c.*?(\\d+)\\s*\u0441");
+    private int index = 0;
+    private int tick = 0;
+    private String waitingFor = null;
 
-    private static final Pattern PLAYTIME_SIMPLE_PATTERN =
-            Pattern.compile("(\\d+)\\s*\u0447.*?(\\d+)\\s*\u043c.*?(\\d+)\\s*\u0441");
+    private static final Pattern TIME =
+            Pattern.compile("(\\d+)ч.*, (\\d+)м.*, (\\d+)с");
 
-    public void startScan(MinecraftClient client) {
-        if (client.player == null) return;
-        if (scanning) {
-            client.player.sendMessage(Text.literal("\u00a7e[PlayTime] \u00a7c\u0421\u043a\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u0443\u0436\u0435 \u0438\u0434\u0451\u0442!"), false);
-            return;
-        }
+    public void start(MinecraftClient mc) {
+        if (scanning || mc.player == null) return;
 
+        players.clear();
         results.clear();
-        playerNames.clear();
-        currentIndex = 0;
-        tickCounter = 0;
-        pendingPlayer = null;
+        index = 0;
 
-        Collection<PlayerListEntry> entries = client.player.networkHandler.getPlayerList();
-        for (PlayerListEntry entry : entries) {
-            String name = entry.getProfile().getName();
-            if (name != null && !name.isEmpty()) {
-                playerNames.add(name);
-            }
-        }
-
-        if (playerNames.isEmpty()) {
-            client.player.sendMessage(Text.literal("\u00a7e[PlayTime] \u00a7c\u041d\u0435\u0442 \u0438\u0433\u0440\u043e\u043a\u043e\u0432!"), false);
-            return;
-        }
+        for (PlayerListEntry e : mc.getNetworkHandler().getPlayerList())
+            players.add(e.getProfile().getName());
 
         scanning = true;
-        client.player.sendMessage(
-                Text.literal("\u00a7e[PlayTime] \u00a7a\u0421\u043a\u0430\u043d: \u00a7f" + playerNames.size() + " \u00a7a\u0438\u0433\u0440\u043e\u043a\u043e\u0432"),
-                false
-        );
+
+        mc.player.sendMessage(Text.literal("§aScan started. Players: " + players.size()), false);
     }
 
-    public void tick(MinecraftClient client) {
-        if (!scanning) return;
-        if (client.player == null) return;
+    public void stop() {
+        scanning = false;
+        players.clear();
+        waitingFor = null;
+    }
 
-        tickCounter++;
-        int delay = PlayTimeConfig.get().delayTicks;
-        if (tickCounter < delay) return;
-        tickCounter = 0;
+    public void tick(MinecraftClient mc) {
+        if (!scanning || mc.player == null) return;
 
-        if (currentIndex >= playerNames.size()) {
+        if (++tick < PlayTimeConfig.get().delayTicks) return;
+        tick = 0;
+
+        if (waitingFor != null) return;
+
+        if (index >= players.size()) {
             scanning = false;
-            client.player.sendMessage(
-                    Text.literal("\u00a7e[PlayTime] \u00a7a\u0413\u043e\u0442\u043e\u0432\u043e! \u00a7f" + results.size() + " \u00a7a\u0438\u0433\u0440\u043e\u043a\u043e\u0432. K - \u043f\u0440\u043e\u0441\u043c\u043e\u0442\u0440."),
-                    false
-            );
+            mc.player.sendMessage(Text.literal("§aScan finished."), false);
             return;
         }
 
-        pendingPlayer = playerNames.get(currentIndex);
-        client.player.networkHandler.sendChatCommand("playtime " + pendingPlayer);
-        currentIndex++;
+        waitingFor = players.get(index++);
+        mc.player.networkHandler.sendChatCommand("playtime " + waitingFor);
     }
 
-    public boolean onChatMessage(String message) {
-        if (!scanning && pendingPlayer == null) return false;
+    public boolean handleChat(String msg) {
 
-        if (pendingPlayer != null && message.toLowerCase().contains(pendingPlayer.toLowerCase())) {
+        if (waitingFor == null) return false;
 
-            Matcher m = PLAYTIME_PATTERN.matcher(message);
-            if (m.find()) {
-                int days = Integer.parseInt(m.group(1));
-                int hours = Integer.parseInt(m.group(2));
-                int minutes = Integer.parseInt(m.group(3));
-                int seconds = Integer.parseInt(m.group(4));
-                long totalSeconds = days * 86400L + hours * 3600L + minutes * 60L + seconds;
-                String formatted = days + "d " + hours + "h " + minutes + "m " + seconds + "s";
-                results.add(new PlayerPlayTime(pendingPlayer, formatted, totalSeconds));
-                pendingPlayer = null;
-                return true;
-            }
+        Matcher m = TIME.matcher(msg);
 
-            Matcher m2 = PLAYTIME_SIMPLE_PATTERN.matcher(message);
-            if (m2.find()) {
-                int hours = Integer.parseInt(m2.group(1));
-                int minutes = Integer.parseInt(m2.group(2));
-                int seconds = Integer.parseInt(m2.group(3));
-                long totalSeconds = hours * 3600L + minutes * 60L + seconds;
-                String formatted = hours + "h " + minutes + "m " + seconds + "s";
-                results.add(new PlayerPlayTime(pendingPlayer, formatted, totalSeconds));
-                pendingPlayer = null;
-                return true;
-            }
-        }
+        if (m.find()) {
+            int h = Integer.parseInt(m.group(1));
+            int min = Integer.parseInt(m.group(2));
+            int s = Integer.parseInt(m.group(3));
 
-        if (pendingPlayer != null && (message.contains("not found") || message.contains("never played") || message.contains("\u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d"))) {
-            pendingPlayer = null;
+            long total = h * 3600L + min * 60L + s;
+            results.add(new PlayerPlayTime(waitingFor,
+                    h + "h " + min + "m " + s + "s",
+                    total));
+
+            waitingFor = null;
             return true;
         }
 
         return false;
     }
 
-    public boolean isScanning() { return scanning; }
-    public int getScanProgress() { return currentIndex; }
-    public int getScanTotal() { return playerNames.size(); }
     public List<PlayerPlayTime> getResults() { return results; }
+    public boolean isScanning() { return scanning; }
 }

@@ -1,20 +1,17 @@
+
 package com.playtimechecker;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
-
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.*;
 
 public class PlayTimeConfig {
 
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final File FILE = new File(
-            FabricLoader.getInstance().getConfigDir().toFile(),
-            "playtime-checker.json"
-    );
+    private static final File FILE =
+            new File(FabricLoader.getInstance().getConfigDir().toFile(),
+                    "playtime-checker.json");
 
     public int delayTicks = 5;
     public int activitySeconds = 30;
@@ -26,26 +23,11 @@ public class PlayTimeConfig {
         return INSTANCE;
     }
 
-    public static PlayTimeConfig getInstance() {
-        return get();
-    }
-
-    public int getDelayTicks() {
-        return delayTicks;
-    }
-
-    public void setDelayTicks(int ticks) {
-        this.delayTicks = ticks;
-        save();
-    }
-
     public static void load() {
         try {
-            if (FILE.exists()) {
-                try (FileReader reader = new FileReader(FILE)) {
-                    INSTANCE = GSON.fromJson(reader, PlayTimeConfig.class);
-                }
-            } else {
+            if (FILE.exists())
+                INSTANCE = GSON.fromJson(new FileReader(FILE), PlayTimeConfig.class);
+            else {
                 INSTANCE = new PlayTimeConfig();
                 save();
             }
@@ -57,9 +39,7 @@ public class PlayTimeConfig {
     public static void save() {
         try {
             FILE.getParentFile().mkdirs();
-            try (FileWriter writer = new FileWriter(FILE)) {
-                GSON.toJson(INSTANCE, writer);
-            }
+            GSON.toJson(INSTANCE, new FileWriter(FILE));
         } catch (Exception ignored) {}
     }
 }

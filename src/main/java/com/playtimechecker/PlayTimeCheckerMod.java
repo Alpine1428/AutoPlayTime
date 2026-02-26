@@ -11,11 +11,14 @@ public class PlayTimeCheckerMod implements ClientModInitializer {
 
     public static KeyBinding scanKey;
     public static KeyBinding menuKey;
+    public static KeyBinding settingsKey;
 
     @Override
     public void onInitializeClient() {
+        PlayTimeConfig.load();
+
         scanKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
-                "Scan PlayTime (All Online)",
+                "Scan PlayTime",
                 InputUtil.Type.KEYSYM,
                 GLFW.GLFW_KEY_J,
                 "PlayTime Checker"
@@ -28,6 +31,13 @@ public class PlayTimeCheckerMod implements ClientModInitializer {
                 "PlayTime Checker"
         ));
 
+        settingsKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
+                "PlayTime Settings",
+                InputUtil.Type.KEYSYM,
+                GLFW.GLFW_KEY_L,
+                "PlayTime Checker"
+        ));
+
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             if (client.player == null) return;
 
@@ -37,6 +47,10 @@ public class PlayTimeCheckerMod implements ClientModInitializer {
 
             if (menuKey.wasPressed()) {
                 client.setScreen(new PlayTimeScreen());
+            }
+
+            if (settingsKey.wasPressed()) {
+                client.setScreen(new PlayTimeSettingsScreen());
             }
 
             PlayTimeScanner.getInstance().tick(client);

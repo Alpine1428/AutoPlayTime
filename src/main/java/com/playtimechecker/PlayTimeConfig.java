@@ -23,6 +23,20 @@ public class PlayTimeConfig {
         return INSTANCE;
     }
 
+    // ✅ для совместимости со старым кодом
+    public static PlayTimeConfig getInstance() {
+        return get();
+    }
+
+    public int getDelayTicks() {
+        return delayTicks;
+    }
+
+    public void setDelayTicks(int ticks) {
+        this.delayTicks = ticks;
+        save();
+    }
+
     public static void load() {
         try {
             if (FILE.exists())

@@ -4,8 +4,8 @@ package com.playtimechecker;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.Text;
+
 import java.util.*;
-import java.util.regex.*;
 
 public class PlayTimeScanner {
 
@@ -16,75 +16,64 @@ public class PlayTimeScanner {
     private final List<String> players = new ArrayList<>();
     private final List<PlayerPlayTime> results = new ArrayList<>();
 
-    private int index = 0;
-    private int tick = 0;
-    private String waitingFor = null;
+    private int currentIndex = 0;
+    private int tickCounter = 0;
 
-    private static final Pattern TIME =
-            Pattern.compile("(\\d+)ч.*, (\\d+)м.*, (\\d+)с");
-
-    public void start(MinecraftClient mc) {
+    public void startScan(MinecraftClient mc) {
         if (scanning || mc.player == null) return;
 
         players.clear();
         results.clear();
-        index = 0;
+        currentIndex = 0;
 
         for (PlayerListEntry e : mc.getNetworkHandler().getPlayerList())
             players.add(e.getProfile().getName());
 
         scanning = true;
 
-        mc.player.sendMessage(Text.literal("§aScan started. Players: " + players.size()), false);
+        mc.player.sendMessage(
+                Text.literal("§aScan started. Players: " + players.size()),
+                false
+        );
     }
 
-    public void stop() {
+    public void stopScan() {
         scanning = false;
         players.clear();
-        waitingFor = null;
     }
 
     public void tick(MinecraftClient mc) {
         if (!scanning || mc.player == null) return;
 
-        if (++tick < PlayTimeConfig.get().delayTicks) return;
-        tick = 0;
+        if (++tickCounter < PlayTimeConfig.getInstance().getDelayTicks())
+            return;
 
-        if (waitingFor != null) return;
+        tickCounter = 0;
 
-        if (index >= players.size()) {
+        if (currentIndex >= players.size()) {
             scanning = false;
             mc.player.sendMessage(Text.literal("§aScan finished."), false);
             return;
         }
 
-        waitingFor = players.get(index++);
-        mc.player.networkHandler.sendChatCommand("playtime " + waitingFor);
+        mc.player.networkHandler.sendChatCommand(
+                "playtime " + players.get(currentIndex++)
+        );
     }
 
-    public boolean handleChat(String msg) {
-
-        if (waitingFor == null) return false;
-
-        Matcher m = TIME.matcher(msg);
-
-        if (m.find()) {
-            int h = Integer.parseInt(m.group(1));
-            int min = Integer.parseInt(m.group(2));
-            int s = Integer.parseInt(m.group(3));
-
-            long total = h * 3600L + min * 60L + s;
-            results.add(new PlayerPlayTime(waitingFor,
-                    h + "h " + min + "m " + s + "s",
-                    total));
-
-            waitingFor = null;
-            return true;
-        }
-
-        return false;
+    public boolean isScanning() {
+        return scanning;
     }
 
-    public List<PlayerPlayTime> getResults() { return results; }
-    public boolean isScanning() { return scanning; }
+    public int getScanProgress() {
+        return currentIndex;
+    }
+
+    public int getScanTotal() {
+        return players.size();
+    }
+
+    public List<PlayerPlayTime> getResults() {
+        return results;
+    }
 }

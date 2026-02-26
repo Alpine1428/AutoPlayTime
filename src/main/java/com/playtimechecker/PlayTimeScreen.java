@@ -23,19 +23,17 @@ public class PlayTimeScreen extends Screen {
     protected void init() {
         super.init();
 
-        refresh();
-
         int cx = width / 2;
 
         addDrawableChild(ButtonWidget.builder(
-                Text.literal("§aStart Scan"),
+                Text.literal("§aStart"),
                 b -> PlayTimeScanner.get().start(MinecraftClient.getInstance())
-        ).dimensions(cx - 150, 20, 100, 20).build());
+        ).dimensions(cx - 150, 20, 80, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("§cStop"),
                 b -> PlayTimeScanner.get().stop()
-        ).dimensions(cx - 40, 20, 80, 20).build());
+        ).dimensions(cx - 60, 20, 80, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("§eReports"),
@@ -44,12 +42,19 @@ public class PlayTimeScreen extends Screen {
                     if (showReports)
                         ReportManager.start();
                 }
-        ).dimensions(cx + 50, 20, 100, 20).build());
+        ).dimensions(cx + 40, 20, 100, 20).build());
     }
 
     private void refresh() {
         sorted = new ArrayList<>(PlayTimeScanner.get().getPlaytimes().entrySet());
         sorted.sort(Comparator.comparingLong(Map.Entry::getValue));
+    }
+
+    private int getColor(long sec) {
+        if (sec < 3600) return 0xFF5555;       // красный <1ч
+        if (sec < 10800) return 0xFFFF55;      // жёлтый <3ч
+        if (sec < 36000) return 0x55FF55;      // зелёный <10ч
+        return 0x55FFFF;                       // голубой 10ч+
     }
 
     @Override
@@ -64,28 +69,36 @@ public class PlayTimeScreen extends Screen {
                 Text.literal("§6§lPlayTime Checker"),
                 cx, 40, 0xFFFFFF);
 
+        if (PlayTimeScanner.get().isScanning()) {
+            ctx.drawCenteredTextWithShadow(textRenderer,
+                    Text.literal("§eScanning: "
+                            + PlayTimeScanner.get().getProgress()
+                            + "/" + PlayTimeScanner.get().getTotal()),
+                    cx, 50, 0xFFFF55);
+        }
+
         for (int i = scroll; i < sorted.size() && i < scroll + 12; i++) {
 
             Map.Entry<String, Long> e = sorted.get(i);
             String name = e.getKey();
-            long time = e.getValue();
-
-            String line = name + " §7- §f" + time + "s";
-
-            if (showReports && ReportManager.getReports().containsKey(name)) {
-                line += " §c[REPORT]";
-            }
+            long sec = e.getValue();
 
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal(line),
-                    cx - 150, y, 0xFFFFFF);
+                    Text.literal(name + " - " + sec + "s"),
+                    cx - 150, y,
+                    getColor(sec));
 
-            // Кнопка вызова
+            if (showReports && ReportManager.getReports().containsKey(name)) {
+                ctx.drawTextWithShadow(textRenderer,
+                        Text.literal("§c" + ReportManager.getReports().get(name)),
+                        cx - 150, y + 10, 0xFF5555);
+            }
+
             ctx.drawTextWithShadow(textRenderer,
                     Text.literal("§a[Проверить]"),
                     cx + 120, y, 0x00FF00);
 
-            y += 15;
+            y += 20;
         }
 
         super.render(ctx, mouseX, mouseY, delta);
@@ -102,33 +115,24 @@ public class PlayTimeScreen extends Screen {
             Map.Entry<String, Long> e = sorted.get(i);
             String name = e.getKey();
 
-            // Проверка клика по нику (копирование)
             if (mouseX >= cx - 150 && mouseX <= cx - 20 &&
-                mouseY >= y && mouseY <= y + 12) {
+                mouseY >= y && mouseY <= y + 15) {
 
                 MinecraftClient.getInstance().keyboard.setClipboard(name);
                 return true;
             }
 
-            // Проверка кнопки "Проверить"
             if (mouseX >= cx + 120 && mouseX <= cx + 200 &&
-                mouseY >= y && mouseY <= y + 12) {
+                mouseY >= y && mouseY <= y + 15) {
 
                 ModerationManager.start(name);
                 return true;
             }
 
-            y += 15;
+            y += 20;
         }
 
         return super.mouseClicked(mouseX, mouseY, button);
-    }
-
-    @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
-        scroll -= amount;
-        if (scroll < 0) scroll = 0;
-        return true;
     }
 
     @Override

@@ -10,14 +10,14 @@ import org.lwjgl.glfw.GLFW;
 
 public class PlayTimeCheckerMod implements ClientModInitializer {
 
-    public static KeyBinding openKey;
+    private KeyBinding open;
 
     @Override
     public void onInitializeClient() {
 
         PlayTimeConfig.load();
 
-        openKey = KeyBindingHelper.registerKeyBinding(
+        open = KeyBindingHelper.registerKeyBinding(
                 new KeyBinding("Open PlayTime GUI",
                         InputUtil.Type.KEYSYM,
                         GLFW.GLFW_KEY_K,
@@ -27,12 +27,12 @@ public class PlayTimeCheckerMod implements ClientModInitializer {
 
             if (client.player == null) return;
 
-            while (openKey.wasPressed()) {
+            while (open.wasPressed())
                 client.setScreen(new PlayTimeScreen());
-            }
 
             PlayTimeScanner.get().tick(client);
             ReportManager.tick();
+            CommandQueue.tick();
         });
     }
 }

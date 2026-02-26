@@ -6,6 +6,7 @@ import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.text.Text;
 
 import java.util.*;
+import java.util.regex.*;
 
 public class PlayTimeScanner {
 
@@ -18,6 +19,10 @@ public class PlayTimeScanner {
 
     private int currentIndex = 0;
     private int tickCounter = 0;
+    private String waitingFor = null;
+
+    private static final Pattern TIME =
+            Pattern.compile("(\\d+)ч.*, (\\d+)м.*, (\\d+)с");
 
     public void startScan(MinecraftClient mc) {
         if (scanning || mc.player == null) return;
@@ -25,6 +30,7 @@ public class PlayTimeScanner {
         players.clear();
         results.clear();
         currentIndex = 0;
+        waitingFor = null;
 
         for (PlayerListEntry e : mc.getNetworkHandler().getPlayerList())
             players.add(e.getProfile().getName());
@@ -40,6 +46,7 @@ public class PlayTimeScanner {
     public void stopScan() {
         scanning = false;
         players.clear();
+        waitingFor = null;
     }
 
     public void tick(MinecraftClient mc) {
@@ -50,15 +57,43 @@ public class PlayTimeScanner {
 
         tickCounter = 0;
 
+        if (waitingFor != null) return;
+
         if (currentIndex >= players.size()) {
             scanning = false;
             mc.player.sendMessage(Text.literal("§aScan finished."), false);
             return;
         }
 
-        mc.player.networkHandler.sendChatCommand(
-                "playtime " + players.get(currentIndex++)
-        );
+        waitingFor = players.get(currentIndex++);
+        mc.player.networkHandler.sendChatCommand("playtime " + waitingFor);
+    }
+
+    // ✅ ВЕРНУЛИ handleChat
+    public boolean handleChat(String msg) {
+
+        if (waitingFor == null) return false;
+
+        Matcher m = TIME.matcher(msg);
+
+        if (m.find()) {
+            int h = Integer.parseInt(m.group(1));
+            int min = Integer.parseInt(m.group(2));
+            int s = Integer.parseInt(m.group(3));
+
+            long total = h * 3600L + min * 60L + s;
+
+            results.add(new PlayerPlayTime(
+                    waitingFor,
+                    h + "h " + min + "m " + s + "s",
+                    total
+            ));
+
+            waitingFor = null;
+            return true; // скрываем сообщение
+        }
+
+        return false;
     }
 
     public boolean isScanning() {

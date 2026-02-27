@@ -50,14 +50,6 @@ public class PlayTimeScreen extends Screen {
                 Text.literal("§6§lPlayTime Checker"),
                 cx, 40, 0xFFFFFF);
 
-        if (PlayTimeScanner.get().isScanning()) {
-            ctx.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("§eПрогресс: "
-                            + PlayTimeScanner.get().getProgress()
-                            + "/" + PlayTimeScanner.get().getTotal()),
-                    cx, 50, 0xFFFF55);
-        }
-
         for (PlayerData p : PlayTimeScanner.get().getSorted()) {
 
             ctx.drawTextWithShadow(textRenderer,

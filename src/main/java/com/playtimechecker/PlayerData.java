@@ -15,7 +15,7 @@ public class PlayerData implements Comparable<PlayerData> {
         long h = seconds / 3600;
         long m = (seconds % 3600) / 60;
         long s = seconds % 60;
-        return h + "\u0447 " + m + "\u043C " + s + "\u0441";
+        return h + "\u0447 " + m + "\u043c " + s + "\u0441";
     }
 
     public int getColor() {

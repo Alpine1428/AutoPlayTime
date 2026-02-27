@@ -8,7 +8,7 @@ import net.minecraft.text.Text;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 public class PlayTimeScreen extends Screen {
 
@@ -23,11 +23,13 @@ public class PlayTimeScreen extends Screen {
     protected void init() {
         int cx = width / 2;
 
+        // Button: Check all
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0432\u0441\u0435\u0445"),
                 b -> PlayTimeScanner.get().start(MinecraftClient.getInstance())
         ).dimensions(cx - 230, 20, 110, 20).build());
 
+        // Button: Stop
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("\u0421\u0442\u043e\u043f"),
                 b -> {
@@ -37,11 +39,16 @@ public class PlayTimeScreen extends Screen {
                 }
         ).dimensions(cx - 110, 20, 50, 20).build());
 
+        // Button: Reports
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("\u0420\u0435\u043f\u043e\u0440\u0442\u044b"),
-                b -> ReportManager.start()
+                b -> {
+                    MinecraftClient.getInstance().setScreen(null);
+                    ReportManager.start();
+                }
         ).dimensions(cx - 50, 20, 80, 20).build());
 
+        // Button: Settings
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438"),
                 b -> MinecraftClient.getInstance().setScreen(new DelaySettingsScreen())
@@ -62,10 +69,12 @@ public class PlayTimeScreen extends Screen {
         int cx = width / 2;
         int y = 50;
 
+        // Title
         ctx.drawCenteredTextWithShadow(textRenderer,
                 Text.literal("\u00a76\u00a7lPlayTime Checker"), cx, y, 0xFFFFFF);
         y += 15;
 
+        // Scan progress
         PlayTimeScanner scanner = PlayTimeScanner.get();
         if (scanner.scanning()) {
             String progress = "\u0421\u043a\u0430\u043d: "
@@ -75,12 +84,14 @@ public class PlayTimeScreen extends Screen {
             y += 12;
         }
 
+        // Report scanning
         if (ReportManager.isScanning()) {
             ctx.drawCenteredTextWithShadow(textRenderer,
                     Text.literal("\u00a7e\u0420\u0435\u043f\u043e\u0440\u0442\u044b..."), cx, y, 0xFFFFFF);
             y += 12;
         }
 
+        // Moderation status
         if (ModerationHandler.isActive()) {
             ctx.drawCenteredTextWithShadow(textRenderer,
                     Text.literal("\u00a7b\u041c\u043e\u0434\u0435\u0440\u0430\u0446\u0438\u044f: "
@@ -89,11 +100,20 @@ public class PlayTimeScreen extends Screen {
             y += 12;
         }
 
+        // Report count
+        Set<String> reportedNicks = ReportManager.getReportedNicks();
+        if (!reportedNicks.isEmpty()) {
+            ctx.drawCenteredTextWithShadow(textRenderer,
+                    Text.literal("\u00a7c\u0420\u0435\u043f\u043e\u0440\u0442\u043e\u0432: " + reportedNicks.size()),
+                    cx, y, 0xFFFFFF);
+            y += 12;
+        }
+
         y += 5;
 
+        // Rebuild list
         rebuildEntries();
 
-        Map<String, String> reports = ReportManager.getReports();
         int rowHeight = 14;
         int maxVisible = (height - y - 10) / rowHeight;
         int start = scrollOffset;
@@ -104,19 +124,22 @@ public class PlayTimeScreen extends Screen {
             PlayerData p = entry.data;
             int color = p.getColor();
 
+            // Nick + time
             String info = p.name + " - " + p.format();
             ctx.drawTextWithShadow(textRenderer, Text.literal(info),
                     cx - 200, y, color);
 
-            int btnX = cx + 50;
+            // [Check] button
+            int btnX = cx + 30;
             ctx.drawTextWithShadow(textRenderer,
                     Text.literal("\u00a7b[\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430]"),
                     btnX, y, 0x55FFFF);
 
-            if (reports.containsKey(p.name)) {
+            // REPORT marker - RED if nick matches
+            if (ReportManager.hasReport(p.name)) {
                 ctx.drawTextWithShadow(textRenderer,
-                        Text.literal("\u00a7c[REPORT] \u00a77" + reports.get(p.name)),
-                        btnX + 70, y, 0xAAAAAA);
+                        Text.literal("\u00a7c\u00a7lREPORT"),
+                        btnX + 75, y, 0xFF5555);
             }
 
             entry.y = y;
@@ -133,7 +156,8 @@ public class PlayTimeScreen extends Screen {
         for (PlayerEntry entry : entries) {
             if (entry.y < 0) continue;
 
-            if (mouseX >= cx - 200 && mouseX < cx + 45
+            // Click on nick -> copy to clipboard
+            if (mouseX >= cx - 200 && mouseX < cx + 25
                     && mouseY >= entry.y && mouseY < entry.y + 12) {
                 MinecraftClient.getInstance().keyboard.setClipboard(entry.data.name);
                 MinecraftClient mc = MinecraftClient.getInstance();
@@ -144,8 +168,9 @@ public class PlayTimeScreen extends Screen {
                 return true;
             }
 
-            int btnX = cx + 50;
-            if (mouseX >= btnX && mouseX < btnX + 65
+            // Click on [Check] -> start moderation
+            int btnX = cx + 30;
+            if (mouseX >= btnX && mouseX < btnX + 75
                     && mouseY >= entry.y && mouseY < entry.y + 12) {
                 ModerationHandler.startModeration(entry.data.name);
                 return true;

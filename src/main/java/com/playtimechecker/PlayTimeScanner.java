@@ -26,8 +26,9 @@ public class PlayTimeScanner {
     private String current = null;
     private boolean hidingBlock = false;
 
+    // Parse first line: Obshchee vremya v igre: Xch., Ym., Zs.
     private static final Pattern TOTAL =
-            Pattern.compile("\\u041E\\u0431\\u0449\\u0435\\u0435 \\u0432\\u0440\\u0435\\u043C\\u044F \\u0432 \\u0438\\u0433\\u0440\\u0435:\\s*(\\d+)\\u0447\\.?,?\\s*(\\d+)\\u043C\\.?,?\\s*(\\d+)\\u0441");
+            Pattern.compile("\u041e\u0431\u0449\u0435\u0435 \u0432\u0440\u0435\u043c\u044f \u0432 \u0438\u0433\u0440\u0435:\\s*(\\d+)\u0447\\.?,?\\s*(\\d+)\u043c\\.?,?\\s*(\\d+)\u0441");
 
     private static final String SEPARATOR = "---------------------------------------------------";
     private static final String PLAYTIME_HEADER = "--PlayTimeAPI--";
@@ -63,6 +64,11 @@ public class PlayTimeScanner {
 
         if (index >= players.size()) {
             state = State.IDLE;
+            if (mc.player != null) {
+                mc.player.sendMessage(
+                    Text.literal("\u00a7a\u0421\u043a\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043d\u043e: " + data.size() + " \u0438\u0433\u0440\u043e\u043a\u043e\u0432"),
+                    false);
+            }
             return;
         }
 

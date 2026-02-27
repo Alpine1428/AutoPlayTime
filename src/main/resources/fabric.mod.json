@@ -4,7 +4,9 @@
   "version": "${version}",
   "name": "PlayTime Checker",
   "description": "HolyWorld PlayTime checker for moderators",
-  "authors": ["Moderator"],
+  "authors": [
+    "Moderator"
+  ],
   "contact": {},
   "license": "MIT",
   "icon": "",
@@ -14,9 +16,6 @@
       "com.playtimechecker.PlayTimeCheckerMod"
     ]
   },
-  "mixins": [
-    "playtime-checker.mixins.json"
-  ],
   "depends": {
     "fabricloader": ">=0.15.0",
     "minecraft": "~1.20.1",

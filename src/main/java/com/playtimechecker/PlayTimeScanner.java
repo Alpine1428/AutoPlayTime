@@ -1,76 +1,79 @@
 
 package com.playtimechecker;
 
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.PlayerListEntry;
 import java.util.*;
 import java.util.regex.*;
 
 public class PlayTimeScanner {
 
-    public enum State { IDLE, SCANNING, WAITING }
+    public enum State { IDLE, SENDING, WAITING }
 
     private static final PlayTimeScanner INSTANCE = new PlayTimeScanner();
     public static PlayTimeScanner get() { return INSTANCE; }
 
     private State state = State.IDLE;
+
     private final List<String> players = new ArrayList<>();
     private final Map<String, Long> playtimes = new HashMap<>();
 
     private int index = 0;
     private String current = null;
-    private boolean hideBlock = false;
 
     private static final Pattern TIME =
             Pattern.compile("(\\d+)ч.*, (\\d+)м.*, (\\d+)с");
 
-    public void start(net.minecraft.client.MinecraftClient mc) {
+    public void start(MinecraftClient mc) {
 
         if (state != State.IDLE) return;
+        if (mc.player == null) return;
 
         players.clear();
         playtimes.clear();
         index = 0;
+        current = null;
 
-        mc.getNetworkHandler().getPlayerList()
-                .forEach(e -> players.add(e.getProfile().getName()));
+        for (PlayerListEntry e : mc.getNetworkHandler().getPlayerList())
+            players.add(e.getProfile().getName());
 
-        state = State.SCANNING;
+        state = State.SENDING;
     }
 
     public void stop() {
         state = State.IDLE;
         players.clear();
+        current = null;
     }
 
-    public void tick(net.minecraft.client.MinecraftClient mc) {
+    public void tick(MinecraftClient mc) {
 
-        if (state != State.SCANNING) return;
+        if (state == State.IDLE) return;
+        if (mc.player == null) return;
 
-        if (index >= players.size()) {
-            state = State.IDLE;
-            return;
+        if (state == State.SENDING) {
+
+            if (index >= players.size()) {
+                state = State.IDLE;
+                return;
+            }
+
+            current = players.get(index++);
+            CommandQueue.add("playtime " + current);
+            state = State.WAITING;
         }
-
-        current = players.get(index++);
-        state = State.WAITING;
-        CommandQueue.add("playtime " + current);
     }
 
     public boolean handleChat(String msg) {
 
-        if (msg.contains("PlayTimeAPI")) {
-            hideBlock = true;
+        // Скрываем весь блок PlayTimeAPI
+        if (msg.contains("PlayTimeAPI") || msg.contains("Активность") || msg.contains("Общее время"))
             return true;
-        }
-
-        if (hideBlock) {
-            if (msg.contains("---"))
-                hideBlock = false;
-            return true;
-        }
 
         if (state != State.WAITING) return false;
 
         Matcher m = TIME.matcher(msg);
+
         if (m.find()) {
 
             long sec =
@@ -79,7 +82,9 @@ public class PlayTimeScanner {
                     Integer.parseInt(m.group(3));
 
             playtimes.put(current, sec);
-            state = State.SCANNING;
+
+            state = State.SENDING;
+            current = null;
             return true;
         }
 

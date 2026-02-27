@@ -31,8 +31,8 @@ public class PlayTimeCheckerMod implements ClientModInitializer {
                 client.setScreen(new PlayTimeScreen());
 
             PlayTimeScanner.get().tick(client);
-            ReportManager.tick();
             CommandQueue.tick();
+            ReportManager.tick();
         });
     }
 }

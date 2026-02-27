@@ -25,8 +25,7 @@ public class CommandQueue {
 
         tick = 0;
 
-        if (!queue.isEmpty()) {
+        if (!queue.isEmpty())
             mc.player.networkHandler.sendChatCommand(queue.poll());
-        }
     }
 }

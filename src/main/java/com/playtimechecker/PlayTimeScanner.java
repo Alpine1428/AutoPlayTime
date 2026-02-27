@@ -19,6 +19,7 @@ public class PlayTimeScanner {
 
     private int index = 0;
     private String current = null;
+
     private boolean hideBlock = false;
 
     private static final Pattern TIME =
@@ -41,6 +42,7 @@ public class PlayTimeScanner {
     public void stop() {
         state = State.IDLE;
         players.clear();
+        current = null;
     }
 
     public void tick(MinecraftClient mc) {
@@ -62,18 +64,18 @@ public class PlayTimeScanner {
 
     public boolean handleChat(String msg) {
 
-        if (msg.contains("PlayTimeAPI")) {
-            hideBlock = true;
+        // ✅ Начало или конец блока
+        if (msg.contains("---------------------------------------------------")) {
+            hideBlock = !hideBlock;
             return true;
         }
 
-        if (hideBlock) {
-            if (msg.contains("---"))
-                hideBlock = false;
+        // ✅ Если внутри блока — скрываем
+        if (hideBlock)
             return true;
-        }
 
-        if (state != State.WAITING) return false;
+        if (state != State.WAITING)
+            return false;
 
         Matcher m = TIME.matcher(msg);
 
@@ -86,6 +88,7 @@ public class PlayTimeScanner {
 
             data.put(current, new PlayerData(current, sec));
             state = State.SENDING;
+            current = null;
             return true;
         }
 

@@ -13,7 +13,7 @@ import java.util.Set;
 public class PlayTimeScreen extends Screen {
 
     private int scrollOffset = 0;
-    private List<PlayerEntry> entries = new ArrayList<>();
+    private final List<PlayerEntry> entries = new ArrayList<>();
 
     public PlayTimeScreen() {
         super(Text.literal("PlayTime Checker"));
@@ -23,13 +23,11 @@ public class PlayTimeScreen extends Screen {
     protected void init() {
         int cx = width / 2;
 
-        // Button: Check all
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0432\u0441\u0435\u0445"),
                 b -> PlayTimeScanner.get().start(MinecraftClient.getInstance())
         ).dimensions(cx - 230, 20, 110, 20).build());
 
-        // Button: Stop
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("\u0421\u0442\u043e\u043f"),
                 b -> {
@@ -39,7 +37,6 @@ public class PlayTimeScreen extends Screen {
                 }
         ).dimensions(cx - 110, 20, 50, 20).build());
 
-        // Button: Reports
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("\u0420\u0435\u043f\u043e\u0440\u0442\u044b"),
                 b -> {
@@ -48,7 +45,6 @@ public class PlayTimeScreen extends Screen {
                 }
         ).dimensions(cx - 50, 20, 80, 20).build());
 
-        // Button: Settings
         addDrawableChild(ButtonWidget.builder(
                 Text.literal("\u041d\u0430\u0441\u0442\u0440\u043e\u0439\u043a\u0438"),
                 b -> MinecraftClient.getInstance().setScreen(new DelaySettingsScreen())
@@ -69,29 +65,26 @@ public class PlayTimeScreen extends Screen {
         int cx = width / 2;
         int y = 50;
 
-        // Title
         ctx.drawCenteredTextWithShadow(textRenderer,
                 Text.literal("\u00a76\u00a7lPlayTime Checker"), cx, y, 0xFFFFFF);
         y += 15;
 
-        // Scan progress
         PlayTimeScanner scanner = PlayTimeScanner.get();
         if (scanner.scanning()) {
-            String progress = "\u0421\u043a\u0430\u043d: "
-                    + scanner.progress() + "/" + scanner.total();
             ctx.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("\u00a7e" + progress), cx, y, 0xFFFFFF);
+                    Text.literal("\u00a7e\u0421\u043a\u0430\u043d: "
+                            + scanner.progress() + "/" + scanner.total()),
+                    cx, y, 0xFFFFFF);
             y += 12;
         }
 
-        // Report scanning
         if (ReportManager.isScanning()) {
             ctx.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("\u00a7e\u0420\u0435\u043f\u043e\u0440\u0442\u044b..."), cx, y, 0xFFFFFF);
+                    Text.literal("\u00a7e\u0420\u0435\u043f\u043e\u0440\u0442\u044b..."),
+                    cx, y, 0xFFFFFF);
             y += 12;
         }
 
-        // Moderation status
         if (ModerationHandler.isActive()) {
             ctx.drawCenteredTextWithShadow(textRenderer,
                     Text.literal("\u00a7b\u041c\u043e\u0434\u0435\u0440\u0430\u0446\u0438\u044f: "
@@ -100,18 +93,16 @@ public class PlayTimeScreen extends Screen {
             y += 12;
         }
 
-        // Report count
-        Set<String> reportedNicks = ReportManager.getReportedNicks();
-        if (!reportedNicks.isEmpty()) {
+        Set<String> reported = ReportManager.getReportedNicks();
+        if (!reported.isEmpty()) {
             ctx.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("\u00a7c\u0420\u0435\u043f\u043e\u0440\u0442\u043e\u0432: " + reportedNicks.size()),
+                    Text.literal("\u00a7c\u0420\u0435\u043f\u043e\u0440\u0442\u043e\u0432: " + reported.size()),
                     cx, y, 0xFFFFFF);
             y += 12;
         }
 
         y += 5;
 
-        // Rebuild list
         rebuildEntries();
 
         int rowHeight = 14;
@@ -122,20 +113,16 @@ public class PlayTimeScreen extends Screen {
         for (int i = start; i < end; i++) {
             PlayerEntry entry = entries.get(i);
             PlayerData p = entry.data;
-            int color = p.getColor();
 
-            // Nick + time
             String info = p.name + " - " + p.format();
             ctx.drawTextWithShadow(textRenderer, Text.literal(info),
-                    cx - 200, y, color);
+                    cx - 200, y, p.getColor());
 
-            // [Check] button
             int btnX = cx + 30;
             ctx.drawTextWithShadow(textRenderer,
                     Text.literal("\u00a7b[\u041f\u0440\u043e\u0432\u0435\u0440\u043a\u0430]"),
                     btnX, y, 0x55FFFF);
 
-            // REPORT marker - RED if nick matches
             if (ReportManager.hasReport(p.name)) {
                 ctx.drawTextWithShadow(textRenderer,
                         Text.literal("\u00a7c\u00a7lREPORT"),
@@ -156,19 +143,17 @@ public class PlayTimeScreen extends Screen {
         for (PlayerEntry entry : entries) {
             if (entry.y < 0) continue;
 
-            // Click on nick -> copy to clipboard
             if (mouseX >= cx - 200 && mouseX < cx + 25
                     && mouseY >= entry.y && mouseY < entry.y + 12) {
                 MinecraftClient.getInstance().keyboard.setClipboard(entry.data.name);
                 MinecraftClient mc = MinecraftClient.getInstance();
                 if (mc.player != null) {
                     mc.player.sendMessage(
-                            Text.literal("\u00a7a\u041d\u0438\u043a \u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d: " + entry.data.name), false);
+                            Text.literal("\u00a7a\u0421\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u043d\u043e: " + entry.data.name), false);
                 }
                 return true;
             }
 
-            // Click on [Check] -> start moderation
             int btnX = cx + 30;
             if (mouseX >= btnX && mouseX < btnX + 75
                     && mouseY >= entry.y && mouseY < entry.y + 12) {
@@ -184,10 +169,8 @@ public class PlayTimeScreen extends Screen {
     public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
         scrollOffset -= (int) amount;
         if (scrollOffset < 0) scrollOffset = 0;
-
         int maxScroll = Math.max(0, entries.size() - 10);
         if (scrollOffset > maxScroll) scrollOffset = maxScroll;
-
         return true;
     }
 
@@ -199,9 +182,6 @@ public class PlayTimeScreen extends Screen {
     private static class PlayerEntry {
         PlayerData data;
         int y = -1;
-
-        PlayerEntry(PlayerData data) {
-            this.data = data;
-        }
+        PlayerEntry(PlayerData data) { this.data = data; }
     }
 }

@@ -14,25 +14,23 @@ public class PlayTimeScanner {
     public static PlayTimeScanner get() { return INSTANCE; }
 
     private State state = State.IDLE;
-
     private final List<String> players = new ArrayList<>();
-    private final Map<String, Long> playtimes = new HashMap<>();
+    private final Map<String, PlayerData> data = new HashMap<>();
 
     private int index = 0;
     private String current = null;
+    private boolean hideBlock = false;
 
     private static final Pattern TIME =
-            Pattern.compile("(\\d+)ч.*, (\\d+)м.*, (\\d+)с");
+            Pattern.compile("Общее время в игре:\s*(\\d+)ч.*,\s*(\\d+)м.*,\s*(\\d+)с");
 
     public void start(MinecraftClient mc) {
 
         if (state != State.IDLE) return;
-        if (mc.player == null) return;
 
         players.clear();
-        playtimes.clear();
+        data.clear();
         index = 0;
-        current = null;
 
         for (PlayerListEntry e : mc.getNetworkHandler().getPlayerList())
             players.add(e.getProfile().getName());
@@ -43,13 +41,11 @@ public class PlayTimeScanner {
     public void stop() {
         state = State.IDLE;
         players.clear();
-        current = null;
     }
 
     public void tick(MinecraftClient mc) {
 
         if (state == State.IDLE) return;
-        if (mc.player == null) return;
 
         if (state == State.SENDING) {
 
@@ -66,9 +62,16 @@ public class PlayTimeScanner {
 
     public boolean handleChat(String msg) {
 
-        // Скрываем весь блок PlayTimeAPI
-        if (msg.contains("PlayTimeAPI") || msg.contains("Активность") || msg.contains("Общее время"))
+        if (msg.contains("PlayTimeAPI")) {
+            hideBlock = true;
             return true;
+        }
+
+        if (hideBlock) {
+            if (msg.contains("---"))
+                hideBlock = false;
+            return true;
+        }
 
         if (state != State.WAITING) return false;
 
@@ -81,29 +84,21 @@ public class PlayTimeScanner {
                     Integer.parseInt(m.group(2)) * 60L +
                     Integer.parseInt(m.group(3));
 
-            playtimes.put(current, sec);
-
+            data.put(current, new PlayerData(current, sec));
             state = State.SENDING;
-            current = null;
             return true;
         }
 
         return false;
     }
 
-    public Map<String, Long> getPlaytimes() {
-        return playtimes;
+    public List<PlayerData> getSorted() {
+        List<PlayerData> list = new ArrayList<>(data.values());
+        Collections.sort(list);
+        return list;
     }
 
-    public boolean isScanning() {
-        return state != State.IDLE;
-    }
-
-    public int getProgress() {
-        return index;
-    }
-
-    public int getTotal() {
-        return players.size();
-    }
+    public boolean isScanning() { return state != State.IDLE; }
+    public int getProgress() { return index; }
+    public int getTotal() { return players.size(); }
 }

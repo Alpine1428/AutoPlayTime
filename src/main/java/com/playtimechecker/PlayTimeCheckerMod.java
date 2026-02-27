@@ -1,4 +1,3 @@
-
 package com.playtimechecker;
 
 import net.fabricmc.api.ClientModInitializer;
@@ -32,6 +31,8 @@ public class PlayTimeCheckerMod implements ClientModInitializer {
 
             PlayTimeScanner.get().tick(client);
             CommandQueue.tick();
+            ReportManager.tick();
+            ModerationHandler.tick();
         });
     }
 }

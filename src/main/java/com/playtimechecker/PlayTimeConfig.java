@@ -1,10 +1,11 @@
-
 package com.playtimechecker;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import net.fabricmc.loader.api.FabricLoader;
+
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 
 public class PlayTimeConfig {
 
@@ -25,9 +26,11 @@ public class PlayTimeConfig {
 
     public static void load() {
         try {
-            if (FILE.exists())
-                INSTANCE = GSON.fromJson(new FileReader(FILE), PlayTimeConfig.class);
-            else {
+            if (FILE.exists()) {
+                try (Reader r = new InputStreamReader(new FileInputStream(FILE), StandardCharsets.UTF_8)) {
+                    INSTANCE = GSON.fromJson(r, PlayTimeConfig.class);
+                }
+            } else {
                 INSTANCE = new PlayTimeConfig();
                 save();
             }
@@ -39,7 +42,9 @@ public class PlayTimeConfig {
     public static void save() {
         try {
             FILE.getParentFile().mkdirs();
-            GSON.toJson(INSTANCE, new FileWriter(FILE));
+            try (Writer w = new OutputStreamWriter(new FileOutputStream(FILE), StandardCharsets.UTF_8)) {
+                GSON.toJson(INSTANCE, w);
+            }
         } catch (Exception ignored) {}
     }
 }

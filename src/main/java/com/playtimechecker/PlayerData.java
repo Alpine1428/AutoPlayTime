@@ -1,4 +1,3 @@
-
 package com.playtimechecker;
 
 public class PlayerData implements Comparable<PlayerData> {
@@ -16,7 +15,15 @@ public class PlayerData implements Comparable<PlayerData> {
         long h = seconds / 3600;
         long m = (seconds % 3600) / 60;
         long s = seconds % 60;
-        return h + "ч " + m + "м " + s + "с";
+        return h + "\u0447 " + m + "\u043C " + s + "\u0441";
+    }
+
+    public int getColor() {
+        long hours = seconds / 3600;
+        if (hours < 1) return 0xFF5555;
+        if (hours < 3) return 0xFFFF55;
+        if (hours < 10) return 0x55FF55;
+        return 0x55FFFF;
     }
 
     @Override

@@ -1,8 +1,9 @@
-
 package com.playtimechecker;
 
 import net.minecraft.client.MinecraftClient;
-import java.util.*;
+
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class CommandQueue {
 
@@ -11,6 +12,11 @@ public class CommandQueue {
 
     public static void add(String cmd) {
         queue.add(cmd);
+    }
+
+    public static void clear() {
+        queue.clear();
+        tick = 0;
     }
 
     public static void tick() {
@@ -27,5 +33,9 @@ public class CommandQueue {
 
         if (!queue.isEmpty())
             mc.player.networkHandler.sendChatCommand(queue.poll());
+    }
+
+    public static boolean isEmpty() {
+        return queue.isEmpty();
     }
 }

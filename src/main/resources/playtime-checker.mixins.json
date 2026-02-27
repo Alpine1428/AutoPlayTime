@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.playtimechecker.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "client": [
+    "ChatMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

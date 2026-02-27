@@ -11,8 +11,6 @@ import java.util.*;
 
 public class PlayTimeScreen extends Screen {
 
-    private int scroll = 0;
-
     public PlayTimeScreen() {
         super(Text.literal("PlayTime Checker"));
     }
@@ -23,21 +21,19 @@ public class PlayTimeScreen extends Screen {
         int cx = width / 2;
 
         addDrawableChild(ButtonWidget.builder(
-                Text.literal("§aПроверить всех"),
+                Text.literal("Проверить всех"),
                 b -> PlayTimeScanner.get().start(MinecraftClient.getInstance())
-        ).dimensions(cx - 150, 20, 120, 20).build());
+        ).dimensions(cx - 200, 20, 120, 20).build());
 
         addDrawableChild(ButtonWidget.builder(
-                Text.literal("§cСтоп"),
-                b -> PlayTimeScanner.get().stop()
-        ).dimensions(cx - 20, 20, 80, 20).build());
-    }
+                Text.literal("Проверить репорты"),
+                b -> ReportManager.start()
+        ).dimensions(cx - 60, 20, 150, 20).build());
 
-    private int color(long sec) {
-        if (sec < 3600) return 0xFF5555;
-        if (sec < 10800) return 0xFFFF55;
-        if (sec < 36000) return 0x55FF55;
-        return 0x55FFFF;
+        addDrawableChild(ButtonWidget.builder(
+                Text.literal("Настройки"),
+                b -> MinecraftClient.getInstance().setScreen(new DelaySettingsScreen())
+        ).dimensions(cx + 110, 20, 120, 20).build());
     }
 
     @Override
@@ -45,66 +41,29 @@ public class PlayTimeScreen extends Screen {
 
         renderBackground(ctx);
 
-        int y = 60;
+        int y = 70;
         int cx = width / 2;
 
         ctx.drawCenteredTextWithShadow(textRenderer,
                 Text.literal("§6§lPlayTime Checker"),
                 cx, 40, 0xFFFFFF);
 
-        if (PlayTimeScanner.get().scanning()) {
-            ctx.drawCenteredTextWithShadow(textRenderer,
-                    Text.literal("§eПрогресс: "
-                            + PlayTimeScanner.get().progress()
-                            + "/" + PlayTimeScanner.get().total()),
-                    cx, 50, 0xFFFF55);
-        }
-
         for (PlayerData p : PlayTimeScanner.get().getSorted()) {
 
-            ctx.drawTextWithShadow(textRenderer,
-                    Text.literal(p.name + " - " + p.format()),
-                    cx - 150, y, color(p.seconds));
+            String line = p.name + " - " + p.format();
+
+            if (ReportManager.getReports().containsKey(p.name)) {
+                line += " §c[REPORT]";
+            }
 
             ctx.drawTextWithShadow(textRenderer,
-                    Text.literal("§a[Вызвать]"),
-                    cx + 120, y, 0x00FF00);
+                    Text.literal(line),
+                    cx - 150, y, 0xFFFFFF);
 
             y += 20;
         }
 
         super.render(ctx, mouseX, mouseY, delta);
-    }
-
-    @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-
-        int cx = width / 2;
-        int y = 60;
-
-        for (PlayerData p : PlayTimeScanner.get().getSorted()) {
-
-            // Копирование ника
-            if (mouseX >= cx - 150 && mouseX <= cx - 20 &&
-                mouseY >= y && mouseY <= y + 15) {
-
-                MinecraftClient.getInstance().keyboard.setClipboard(p.name);
-                return true;
-            }
-
-            // Вызвать на проверку
-            if (mouseX >= cx + 120 && mouseX <= cx + 200 &&
-                mouseY >= y && mouseY <= y + 15) {
-
-                CommandQueue.add("hm spy " + p.name);
-                CommandQueue.add("find " + p.name);
-                return true;
-            }
-
-            y += 20;
-        }
-
-        return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override

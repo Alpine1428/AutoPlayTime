@@ -35,17 +35,14 @@ public class ModerationHandler {
     private static boolean foundActivity = false;
     private static boolean hasReport = false;
 
-    // Server switch
     private static int switchWaitTicks = 0;
     private static final int SWITCH_WAIT = 200;
 
-    // Recheck
     private static int recheckTicks = 0;
     private static final int RECHECK_INTERVAL = 60;
     private static final int RECHECK_TIMEOUT = 300;
     private static final long ACTIVITY_THRESHOLD = 7;
 
-    // Report GUI
     private static int reportWaitTicks = 0;
     private static int reportClickDelay = 0;
 
@@ -74,17 +71,14 @@ public class ModerationHandler {
         reportWaitTicks = 0;
         reportClickDelay = 0;
 
-        // Check if player has report
         hasReport = ReportManager.hasReport(nick);
 
         if (hasReport) {
-            // First open reportlist to click on the report
             sendMsg("\u00a7b\u041e\u0442\u043a\u0440\u044b\u0432\u0430\u0435\u043c \u0440\u0435\u043f\u043e\u0440\u0442 " + nick + "...");
-            mc.setScreen(null); // close current screen
+            mc.setScreen(null);
             mc.player.networkHandler.sendChatCommand("reportlist");
             state = State.REPORT_OPEN_WAIT;
         } else {
-            // No report, go straight to spy/find
             startSpyFind();
         }
     }
@@ -108,16 +102,13 @@ public class ModerationHandler {
         if (mc.player == null) return;
 
         waitTicks++;
-
         if (waitTicks > 1200) {
-            sendMsg("\u00a7c\u0422\u0430\u0439\u043c\u0430\u0443\u0442 \u043c\u043e\u0434\u0435\u0440\u0430\u0446\u0438\u0438");
+            sendMsg("\u00a7c\u0422\u0430\u0439\u043c\u0430\u0443\u0442");
             state = State.IDLE;
             return;
         }
 
-        // === REPORT GUI STATES ===
-
-        // Wait for reportlist GUI to open
+        // Report GUI states
         if (state == State.REPORT_OPEN_WAIT) {
             reportWaitTicks++;
             if (mc.player.currentScreenHandler != null
@@ -132,25 +123,19 @@ public class ModerationHandler {
             return;
         }
 
-        // Scan report GUI slots to find target nick
         if (state == State.REPORT_SCAN) {
             reportWaitTicks++;
-            if (reportWaitTicks < 10) return; // wait for items
-
+            if (reportWaitTicks < 10) return;
             if (mc.player.currentScreenHandler == null
                     || mc.player.currentScreenHandler == mc.player.playerScreenHandler) {
-                sendMsg("\u00a7c\u0420\u0435\u043f\u043e\u0440\u0442 GUI \u0437\u0430\u043a\u0440\u044b\u043b\u0441\u044f");
                 startSpyFind();
                 return;
             }
-
             int slotCount = mc.player.currentScreenHandler.slots.size();
             int maxSlot = Math.min(45, slotCount);
-
             for (int i = 0; i < maxSlot; i++) {
                 ItemStack stack = mc.player.currentScreenHandler.getSlot(i).getStack();
                 if (stack == null || stack.isEmpty()) continue;
-
                 List<Text> lore = stack.getTooltip(mc.player, TooltipContext.Default.BASIC);
                 for (Text t : lore) {
                     String line = t.getString();
@@ -159,12 +144,10 @@ public class ModerationHandler {
                         String after = line.substring(idx + SUSPECT_KEY.length()).trim();
                         String nick = after.split("[\\s(]")[0].trim();
                         if (nick.equalsIgnoreCase(targetNick)) {
-                            // Found! Click it
                             mc.interactionManager.clickSlot(
                                     mc.player.currentScreenHandler.syncId,
-                                    i, 0, SlotActionType.PICKUP, mc.player
-                            );
-                            sendMsg("\u00a7a\u0420\u0435\u043f\u043e\u0440\u0442 " + targetNick + " \u043d\u0430\u0439\u0434\u0435\u043d \u0438 \u043e\u0442\u043a\u0440\u044b\u0442!");
+                                    i, 0, SlotActionType.PICKUP, mc.player);
+                            sendMsg("\u00a7a\u0420\u0435\u043f\u043e\u0440\u0442 " + targetNick + " \u043e\u0442\u043a\u0440\u044b\u0442!");
                             state = State.REPORT_CLICKED;
                             reportClickDelay = 0;
                             return;
@@ -172,32 +155,26 @@ public class ModerationHandler {
                     }
                 }
             }
-
-            // Not found on this page, check next page
             if (slotCount >= 54) {
-                ItemStack slot44 = mc.player.currentScreenHandler.getSlot(44).getStack();
-                if (slot44 != null && !slot44.isEmpty()) {
-                    ItemStack slot53 = mc.player.currentScreenHandler.getSlot(53).getStack();
-                    if (slot53 != null && !slot53.isEmpty()) {
+                ItemStack s44 = mc.player.currentScreenHandler.getSlot(44).getStack();
+                if (s44 != null && !s44.isEmpty()) {
+                    ItemStack s53 = mc.player.currentScreenHandler.getSlot(53).getStack();
+                    if (s53 != null && !s53.isEmpty()) {
                         mc.interactionManager.clickSlot(
                                 mc.player.currentScreenHandler.syncId,
-                                53, 0, SlotActionType.PICKUP, mc.player
-                        );
+                                53, 0, SlotActionType.PICKUP, mc.player);
                         state = State.REPORT_NEXT_PAGE_WAIT;
                         reportWaitTicks = 0;
                         return;
                     }
                 }
             }
-
-            // Not found anywhere
-            sendMsg("\u00a7e\u0420\u0435\u043f\u043e\u0440\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d \u0432 GUI");
+            sendMsg("\u00a7e\u0420\u0435\u043f\u043e\u0440\u0442 \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d");
             mc.player.closeScreen();
             startSpyFind();
             return;
         }
 
-        // Wait for next page to load
         if (state == State.REPORT_NEXT_PAGE_WAIT) {
             reportWaitTicks++;
             if (reportWaitTicks > 10) {
@@ -207,11 +184,9 @@ public class ModerationHandler {
             return;
         }
 
-        // After clicking report, wait a bit then continue
         if (state == State.REPORT_CLICKED) {
             reportClickDelay++;
-            if (reportClickDelay >= 40) { // 2 sec wait
-                // Close any open screen
+            if (reportClickDelay >= 40) {
                 if (mc.player.currentScreenHandler != null
                         && mc.player.currentScreenHandler != mc.player.playerScreenHandler) {
                     mc.player.closeScreen();
@@ -221,7 +196,7 @@ public class ModerationHandler {
             return;
         }
 
-        // === SERVER SWITCH ===
+        // Server switch wait
         if (state == State.SERVER_SWITCH_WAIT) {
             switchWaitTicks++;
             if (switchWaitTicks >= SWITCH_WAIT) {
@@ -234,7 +209,7 @@ public class ModerationHandler {
             return;
         }
 
-        // === RECHECK LOOP ===
+        // Recheck loop
         if (state == State.RECHECK_WAIT) {
             recheckTicks++;
             if (recheckTicks >= RECHECK_TIMEOUT) {
@@ -251,20 +226,24 @@ public class ModerationHandler {
         }
     }
 
+    /**
+     * Called ONLY when isActive() == true (from ChatMixin).
+     * Returns true if message should be hidden from chat.
+     */
     public static boolean handle(String msg) {
         if (state == State.IDLE) return false;
 
+        // Only intercept /find response when we are waiting for it
         if (state == State.SPY_SENT || state == State.FIND_SENT) {
             Matcher findM = FIND_PATTERN.matcher(msg);
             if (findM.find()) {
                 String server = findM.group(2).toLowerCase();
                 String switchCmd = getServerSwitch(server);
-
                 if (switchCmd != null && !targetNick.equalsIgnoreCase(moderatorNick)) {
                     CommandQueue.add(switchCmd);
                     switchWaitTicks = 0;
                     state = State.SERVER_SWITCH_WAIT;
-                    sendMsg("\u00a7e\u041f\u0435\u0440\u0435\u0445\u043e\u0434 \u043d\u0430 " + server + "... 10\u0441");
+                    sendMsg("\u00a7e\u041f\u0435\u0440\u0435\u0445\u043e\u0434: " + server + " (10\u0441)");
                 } else {
                     foundActivity = false;
                     hidingBlock = false;
@@ -275,6 +254,7 @@ public class ModerationHandler {
             }
         }
 
+        // Only intercept playtime block when we sent /playtime
         if (state == State.PLAYTIME_SENT || state == State.RECHECK_PLAYTIME_SENT) {
             return handleBlock(msg);
         }
@@ -304,15 +284,15 @@ public class ModerationHandler {
                          + Integer.parseInt(actM.group(3));
                 if (sec <= ACTIVITY_THRESHOLD) {
                     CommandQueue.add("hm spyfrz");
-                    sendMsg("\u00a7a\u0410\u043a\u0442\u0438\u0432\u0435\u043d! " + sec + "\u0441. /hm spyfrz");
+                    sendMsg("\u00a7a\u0410\u043a\u0442\u0438\u0432\u0435\u043d! " + sec + "\u0441 /hm spyfrz");
                     state = State.IDLE;
                 } else {
                     if (state == State.PLAYTIME_SENT) {
-                        sendMsg("\u00a7e\u0410\u043a\u0442\u0438\u0432\u043d\u043e\u0441\u0442\u044c: " + sec + "\u0441 > 7\u0441. \u041f\u043e\u0432\u0442\u043e\u0440 15\u0441...");
+                        sendMsg("\u00a7e\u0410\u043a\u0442: " + sec + "\u0441 > 7\u0441. \u041f\u043e\u0432\u0442\u043e\u0440 15\u0441...");
                         state = State.RECHECK_WAIT;
                         recheckTicks = 0;
                     } else if (state == State.RECHECK_PLAYTIME_SENT) {
-                        sendMsg("\u00a7e\u0410\u043a\u0442: " + sec + "\u0441. \u0416\u0434\u0435\u043c...");
+                        sendMsg("\u00a7e\u0410\u043a\u0442: " + sec + "\u0441 \u0416\u0434\u0435\u043c...");
                         state = State.RECHECK_WAIT;
                     }
                 }

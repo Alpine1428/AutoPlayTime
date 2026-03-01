@@ -78,6 +78,10 @@ public class PlayTimeScanner {
         state = State.WAIT;
     }
 
+    /**
+     * Called ONLY when scanning() == true (from ChatMixin).
+     * Returns true if the message should be hidden.
+     */
     public boolean handle(String msg) {
 
         if (msg.contains(PLAYTIME_HEADER)) {

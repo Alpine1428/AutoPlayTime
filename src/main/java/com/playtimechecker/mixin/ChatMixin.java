@@ -20,14 +20,20 @@ public class ChatMixin {
                               MessageIndicator indicator, CallbackInfo ci) {
         String msg = message.getString();
 
-        if (ModerationHandler.handle(msg)) {
-            ci.cancel();
-            return;
+        // Only intercept when moderation is actively running
+        if (ModerationHandler.isActive()) {
+            if (ModerationHandler.handle(msg)) {
+                ci.cancel();
+                return;
+            }
         }
 
-        if (PlayTimeScanner.get().handle(msg)) {
-            ci.cancel();
-            return;
+        // Only intercept when scanner is actively scanning
+        if (PlayTimeScanner.get().scanning()) {
+            if (PlayTimeScanner.get().handle(msg)) {
+                ci.cancel();
+                return;
+            }
         }
     }
 }
